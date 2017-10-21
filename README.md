@@ -51,41 +51,6 @@ Above snippet outputs (errors are printed using `traceAnyA` - sorry):
     (GoodPerson { age: Nothing, email: "paluho@gmail.com", nickname: "paluh" })
    ```
 
-## Internals
-
-To be honest there is really not much inside.
-
-There is validation category which aggregates results:
-
-  ```purescript
-  newtype Validation tok a b = Validation (tok → (a → b))
-
-  instance semigroupoidValidation ∷ Semigroupoid (Validation tok) where
-    compose (Validation v1) (Validation v2) =
-      Validation (\tok →
-        let
-          f1 = v1 tok
-          f2 = v2 tok
-        in (f1 <<< f2))
-
-  instance categoryValidation ∷ Category (Validation tok) where
-    id = Validation (const id)
-  ```
-
-It is used to aggregate validation steps into final records containing only valid values or valid values and invalid ones wrapped in `Either`. Single step ads single field to the result.
-
-On top of it there is `TrackedValidation` type synonym which possibly passes two versions of result (when current and previous steps succeeded) which simpifies both possible scenarios:
-
-   ```purescript
-    type TrackedValidation tok i i' v v' =
-      Validation
-        tok
-        (Either (Record i) { v ∷ Record v, i ∷ Record i})
-        (Either (Record i') { v ∷ Record v', i ∷ Record i'})
-   ```
-
-Additionally I'm using `Variant` (from wonderful `purescript-variants`) for extensible errors handling.
-
 ## TODO
 
   * Add type class to convert record of validators into `TrackedValidation`, so we can probably omit type anotations (which seems necessary in case of composition)...
