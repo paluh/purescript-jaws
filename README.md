@@ -84,8 +84,10 @@ Additionally I'm using `Variant` (from wonderful `purescript-variants`) for exte
 
 ## TODO
 
-  * Add type class to convert record of validators into Validation object so we can probably omit type anotations...
+  * Add type class to convert record of validators into `TrackedValidation`, so we can probably omit type anotations (which seems necessary in case of composition)...
 
   * Split it into submodules
 
   * Add more validators
+
+  * Provide example scenario with two step validation (two password inputs)
