@@ -1,9 +1,9 @@
 # purescript-jaws
 
-Simple validation library...
+Simple validation library. Experimental phase.
 
 
-Picture is worth a thousend words... and is cheaper than real docs:
+Picture is worth a thousand words... and is cheaper than real docs ;-)
 
 
    ```purescript
@@ -11,7 +11,7 @@ Picture is worth a thousend words... and is cheaper than real docs:
      ∀ vr ir.
      TrackedValidation Query () (nickname ∷ _, age ∷ _, email ∷ _) () (nickname ∷ _, age ∷ _, email ∷ _)
    personForm =
-     queryField (SProxy ∷ SProxy "nickname") (nonEmptyStr >=> (pure <<< Nickname)) >>>
+     queryField (SProxy ∷ SProxy "nickname") (nonEmptyStr >=> (Nickname >>> pure)) >>>
      queryField (SProxy ∷ SProxy "age") (optional' (int >=> greaterThan 18)) >>>
      queryField (SProxy ∷ SProxy "email") (nonEmptyStr >=> email)
 

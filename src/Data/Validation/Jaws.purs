@@ -143,4 +143,3 @@ recordField ∷ ∀ e a s ir ir' vr vr' f r r' tok
 recordField p v =
   addValidationStep p (\record → v (get p record))
 
-
