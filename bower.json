@@ -18,6 +18,8 @@
     "purescript-console": "^3.0.0",
     "purescript-psci-support": "^3.0.0",
     "purescript-generics-rep": "^5.3.0",
-    "purescript-debug": "^3.0.0"
+    "purescript-debug": "^3.0.0",
+    "purescript-either": "^3.1.0",
+    "purescript-errors": "^3.0.0"
   }
 }

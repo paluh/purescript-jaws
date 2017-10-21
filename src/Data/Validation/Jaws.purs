@@ -28,7 +28,6 @@ instance categoryValidation ∷ Category (Validation tok) where
 -- | Aggregate validation results.
 -- |
 -- | To simplify final result extraction
--- | in case of successful validation
 -- | it passes two types of result:
 -- |
 -- | * just `unwraped` resulting value
@@ -50,7 +49,7 @@ run (Validation f) tok =
     Left i → Left i
 
 -- | Adds validation step and inserts the result
--- | into resulting record as `s` attr value
+-- | into final record
 addValidationStep ∷ ∀ e a s ir ir' vr vr' tok
   . (IsSymbol s)
   ⇒ RowLacks s ir
@@ -95,32 +94,31 @@ missingErr = inj (SProxy ∷ SProxy "missing") unit
 emptyErr ∷ ∀ v. Variant (empty ∷ Unit | v)
 emptyErr = inj (SProxy ∷ SProxy "empty") unit
 
-multipleErr ∷ ∀ v. Variant (multiple ∷ Unit | v)
-multipleErr = inj (SProxy ∷ SProxy "multiple") unit
+repeatedErr ∷ ∀ v. Variant (repeated ∷ Unit | v)
+repeatedErr = inj (SProxy ∷ SProxy "repeated") unit
 
-present ∷ ∀ v. FieldValue → Either (Variant (missing ∷ Unit, multiple ∷ Unit | v)) (Maybe String)
+present ∷ ∀ v. FieldValue → Either (Variant (missing ∷ Unit, repeated ∷ Unit | v)) (Maybe String)
 present [] = Left missingErr
 present [v] = Right v
-present _ = Left multipleErr
+present _ = Left repeatedErr
 
-nonEmptyStr ∷ ∀ v. FieldValue → Either (Variant (missing ∷ Unit, multiple ∷ Unit, empty ∷ Unit | v)) String
+nonEmptyStr ∷ ∀ v. FieldValue → Either (Variant (missing ∷ Unit, repeated ∷ Unit, empty ∷ Unit | v)) String
 nonEmptyStr = present >=> case _ of
     Nothing → Left emptyErr
     Just "" → Left emptyErr
     Just v → Right v
 
-optional ∷ ∀ v. FieldValue → Either (Variant (multiple ∷  Unit | v)) (Maybe String)
-optional [] = Right Nothing
-optional [Just s] = Right (Just s)
-optional [Nothing] = Right Nothing
-optional _ = Left multipleErr
-
-optional' ∷ ∀ a v. (String → Either (Variant (multiple ∷ Unit | v)) a) → (FieldValue → Either (Variant (multiple ∷ Unit | v)) (Maybe a))
-optional' v i = do
-  mr ← optional i
+optional ∷ ∀ a v. (String → Either (Variant (repeated ∷ Unit | v)) a) → (FieldValue → Either (Variant (repeated ∷ Unit | v)) (Maybe a))
+optional v i = do
+  mr ← optional' i
   case mr of
     Nothing → pure Nothing
     Just r → Just <$> v r
+ where
+  optional' [] = Right Nothing
+  optional' [Just s] = Right (Just s)
+  optional' [Nothing] = Right Nothing
+  optional' _ = Left repeatedErr
 
 
 notNumberErr ∷ ∀ v. Variant (notNumber ∷ Unit | v)
