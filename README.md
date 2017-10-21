@@ -2,6 +2,7 @@
 
 Simple validation library. Experimental phase.
 
+## Example
 
 Picture is worth a thousand words... and is cheaper than real docs ;-)
 
@@ -30,7 +31,7 @@ Picture is worth a thousand words... and is cheaper than real docs ;-)
 
    ```
 
-outputs
+outputs (errors are printed using `traceAnyA` - sorry):
 
    ```purescript
     { nickname: Left { value0: { type: 'missing', value: {} } },
@@ -46,4 +47,42 @@ outputs
     (GoodPerson { age: Nothing, email: "paluho@gmail.com", nickname: "paluh" })
    ```
 
+## Internals
 
+To be honest there is really not much inside.
+
+There is validation category which aggregates results:
+
+  ```purescript
+  newtype Validation tok a b = Validation (tok → (a → b))
+
+  instance semigroupoidValidation ∷ Semigroupoid (Validation tok) where
+    compose (Validation v1) (Validation v2) =
+      Validation (\tok →
+        let
+          f1 = v1 tok
+          f2 = v2 tok
+        in (f1 <<< f2))
+
+  instance categoryValidation ∷ Category (Validation tok) where
+    id = Validation (const id)
+  ```
+
+It is used to aggregate validation steps into final records containing only valid values or valid values and invalid ones wrapped in `Either`. Single step ads single field to the result.
+On top of it there is `TrackedValidation`. When validation step succeeds it builds two versions of result - valid (without any `Either` wrapping) and possibly invalid value (I mean value wrapped in `Right`), so if validation fails in next steps it is easy to build error value. When validation fails it returns just version which represents errors (as there is no more valid value to pass ;-)):
+
+  type TrackedValidation tok i i' v v' =
+    Validation
+      tok
+      (Either (Record i) { v ∷ Record v, i ∷ Record i})
+      (Either (Record i') { v ∷ Record v', i ∷ Record i'})
+
+Additionally I'm using `Variant` (from wonderful `purescript-variants`) for extensible errors handling. Currently this library provides really small amount of validation functions.
+
+## TODO
+
+  * Add type class to convert record of validators into Validation object so we can probably omit type anotations...
+
+  * Split it into submodules
+
+  * Add more validators
