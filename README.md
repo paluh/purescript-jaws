@@ -8,6 +8,10 @@ Picture is worth a thousand words... and is cheaper than real docs ;-)
 
 
    ```purescript
+
+   -- Unfortunatelly currently when building `Validation` through composition type annotation is required for
+   -- record structure like below :-(
+
    personForm ∷
      ∀ vr ir.
      TrackedValidation Query () (nickname ∷ _, age ∷ _, email ∷ _) () (nickname ∷ _, age ∷ _, email ∷ _)
@@ -31,7 +35,7 @@ Picture is worth a thousand words... and is cheaper than real docs ;-)
 
    ```
 
-outputs (errors are printed using `traceAnyA` - sorry):
+Above snippet outputs (errors are printed using `traceAnyA` - sorry):
 
    ```purescript
     { nickname: Left { value0: { type: 'missing', value: {} } },
