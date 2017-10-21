@@ -3,7 +3,7 @@ module Test.Main where
 import Prelude
 
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, logShow)
+import Control.Monad.Eff.Console (CONSOLE, log, logShow)
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -58,10 +58,11 @@ personForm =
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do
   let
-    validateAndPrint q =
+    validateAndPrint q = do
       case run personForm q of
         Right v → logShow (GoodPerson v)
         Left e → traceAnyA e
+      log "\n"
   validateAndPrint empty
   validateAndPrint (fromFoldable [Tuple "nickname" [Just "paluh"], Tuple "age" [Just "666"], Tuple "email" [Just "paluho@gmail.com"]])
   validateAndPrint (fromFoldable [Tuple "nickname" [Just "paluh"], Tuple "age" [], Tuple "email" [Just "paluho@gmail.com"]])
