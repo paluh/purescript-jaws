@@ -70,17 +70,15 @@ There is validation category which aggregates results:
 
 It is used to aggregate validation steps into final records containing only valid values or valid values and invalid ones wrapped in `Either`. Single step ads single field to the result.
 
-On top of it there is `TrackedValidation` type synonym. It builds result as follows:
+On top of it there is `TrackedValidation` type synonym which possibly passes two versions of result (when current and previous steps succeeded) which simpifies both possible scenarios:
 
-  - record with just valid values (without any `Either` wrapping)
-  - possibly invalid value (I mean value wrapped in `Right`), so if validation fails in next steps it is easy to build final error representation
-  - when validation fails it returns just version which represents errors (as there is no more valid value to pass ;-)):
-
-  type TrackedValidation tok i i' v v' =
-    Validation
-      tok
-      (Either (Record i) { v ∷ Record v, i ∷ Record i})
-      (Either (Record i') { v ∷ Record v', i ∷ Record i'})
+   ```purescript
+    type TrackedValidation tok i i' v v' =
+      Validation
+        tok
+        (Either (Record i) { v ∷ Record v, i ∷ Record i})
+        (Either (Record i') { v ∷ Record v', i ∷ Record i'})
+   ```
 
 Additionally I'm using `Variant` (from wonderful `purescript-variants`) for extensible errors handling.
 
