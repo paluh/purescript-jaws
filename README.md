@@ -44,6 +44,6 @@ outputs
     (GoodPerson { age: (Just 666), email: "paluho@gmail.com", nickname: "paluh" })
 
     (GoodPerson { age: Nothing, email: "paluho@gmail.com", nickname: "paluh" })
-    ```
+   ```
 
 
