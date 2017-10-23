@@ -4,6 +4,8 @@ Chew them all, but... keep those pesky Vegans outside!
 
 `<img src="Spilberg to the rescue" />`
 
+---
+
 Simple, but __composable__ validation toolkit without type class mangling!
 
 Project is still in experimental phase - I'm currently rewriting it to provide more principled types and more systematic way of error handling, monadic validation and... documentation of course :-P
