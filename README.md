@@ -2,7 +2,7 @@
 
 Chew them all, but... keep those pesky Vegans outside!
 
-<src img="Spilberg to the rescue" />
+`<img src="Spilberg to the rescue" />`
 
 Simple, but __composable__ validation toolkit without type class mangling!
 
