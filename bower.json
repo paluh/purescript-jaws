@@ -22,5 +22,6 @@
     "purescript-either": "^3.1.0",
     "purescript-errors": "^3.0.0",
     "purescript-profunctor": "^3.2.0"
-  }
+  },
+  "license": "BSD-3-Clause"
 }
