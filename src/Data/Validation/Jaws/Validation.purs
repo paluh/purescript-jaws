@@ -2,6 +2,7 @@ module Data.Validation.Jaws.Validation where
 
 import Prelude
 
+import Control.Alt (class Alt)
 import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.Reader (ReaderT(..), runReaderT)
 import Data.Either (Either(Left, Right))
@@ -20,6 +21,12 @@ derive newtype instance applicativeValidation ∷ (Monad m) ⇒ Applicative (Val
 derive newtype instance bindValidation ∷ (Monad m) ⇒ Bind (Validation m e a)
 derive newtype instance monadValidation ∷ (Monad m) ⇒ Monad (Validation m e a)
 
+instance altValidation ∷ (Monad m) ⇒ Alt (Validation m e a) where
+  alt v1 v2 = Validation <<< ReaderT $ (\a → ExceptT $ do
+    eb <- runValidation v1 a
+    case eb of
+      r@(Right b) → pure r
+      _ → runValidation v2 a)
 
 instance semigroupoidValidation ∷ (Monad m) ⇒ Semigroupoid (Validation m e) where
   compose (Validation v2) (Validation v1) =
