@@ -1,6 +1,9 @@
 {
   "name": "purescript-jaws",
-  "repository": "https://github.com/paluh/purescript-jaws",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paluh/purescript-jaws.git"
+  },
   "ignore": [
     "**/.*",
     "node_modules",
