@@ -209,7 +209,7 @@ into our validation monad stack. `a` type is an result from previous validation 
 Lets build this simple combinator from scratch (I've added type for clarity):
 
   ```purescript
-   emptyString ∷ ∀ m. Monad m ⇒ String → Validation m Unit Query (Maybe String)
+   emptyString ∷ ∀ a m. Monad m ⇒ String → Validation m Unit Query (Maybe a)
    emptyString p = pureV (\query → case lookup p query of
       Nothing → Right Nothing
       Just [Nothing] → Right Nothing
@@ -228,16 +228,21 @@ We can read above `Validation` (there is also complementary type for "product va
 Now we can validate both passwords using above combinator:
 
   ```purescript
-    emptyPasswords = emptyPassword "password1" >>= const (emptyPassword "password2")
+    emptyPasswords = (emptyPassword "password1" >>= const (emptyPassword "password2"))
+  ```
+and tag this step too:
+
+  ```purescript
+    emptyPasswords' = tag (SProxy "emptyPasswords") emptyPasswords
   ```
 
-TODO: more docs soon
+TODO: more docs soon...
 
   ```purescript
     profile =
       Profile <$>
         (buildRecord
-          ((addField (SProxy ∷ SProxy "password") ((Just <$> password) <|> tag (SProxy ∷ SProxy "empty") emptyPasswords)) >>>
+          ((addField (SProxy ∷ SProxy "password") ((Just <$> password) <|> emptyPasswords')) >>>
             addFieldFromQuery (SProxy ∷ SProxy "bio") (scalar <|> pure Nothing) >>>
             addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
             addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
@@ -267,7 +272,9 @@ TODO: more docs soon
   ```
 
 
-(Right (Profile { age: Nothing, bio: Nothing, nickname: "nick", password: (Just "new") }))
+  ```purescript
+  (Right (Profile { age: Nothing, bio: Nothing, nickname: "nick", password: (Just "new") }))
+  ```
 
 
 ### Monadic validation
