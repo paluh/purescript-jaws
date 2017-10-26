@@ -147,7 +147,9 @@ which has shape:
 You can argue that `Builder` and `Validation` can be generalized to common base, but belive me I was there and it wasn't nice.
 
 
-# TODO
+## TODO
+
+  * Use `Data.Record.Builder` internally
 
   * Provide utilities for handling failure values (paths to errors etc.)
 
