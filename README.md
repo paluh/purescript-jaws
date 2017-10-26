@@ -35,11 +35,15 @@ Let's combine these steps together and check them in action:
   ```
    password =
      (tag (SProxy ∷ SProxy "fields") passwordFields) >>>
-     (tag (SProxy ∷ SProxy "passwordsEqual") (passwordsEqual >>> createPassword))
+     (tag (SProxy ∷ SProxy "equals") (passwordsEqual >>> createPassword))
 
   ```
 
-But before we validate something, few comments:
+When you see `SProxy :: SProxy label` you can think of a labeling validation step. Labeling steps is necessary in case of "sum validation" - where validation is chained one after another. It's basically `a -> Either e b` chain.
+
+On the other hand we have also products/records build up steps. This kind of validation steps aggregates all results into product (through `addField` or dedicated query helper `addFieldFromQuery`). In this context labeling result in record field name. Resulting product value would contain all valid, but also invalid values (values wrapped in `Either`), but if whole validation passes you would get product without any additional wrapping!
+
+Few additional comments regarding following examples:
 
   * I'm using debug log (`traceAnyA`) in case of failure
 
@@ -69,6 +73,7 @@ Let's validate:
   ```
 
   ```purescript
+  -- one value missing - errors occures during `password2.fields` and `password1.fields` steps
     Left {
       value0:
        { type: 'fields',
@@ -78,7 +83,7 @@ Let's validate:
   ```
 
   ```purescript
-  -- one value missing
+  -- one value missing - error occures during `password2.fields` step
   validateAndPrint password (fromFoldable [Tuple "password1" [Just "admin"]])
   ```
 
@@ -93,7 +98,7 @@ Let's validate:
   ```
 
   ```purescript
-  -- non equal passwords
+  -- non equal passwords - error occures during `equals` step
   validateAndPrint password (fromFoldable [Tuple "password1" [Just "admin"], Tuple "password2" [Just "pass"]])
   ```
 
@@ -225,3 +230,6 @@ You can argue that `Builder` and `Validation` can be generalized to common base,
   * How to label and generalize paths and how to pass this through base `Reader` monads stack
   
   * Provide more basic validators for http
+
+  * Test `HStack` as an alternative for records
+
