@@ -177,7 +177,6 @@ but in case of invalid input...
          email: Right { value0: 'email@example.com' },
          nickname: Right { value0: 'nick' } } }
   ```
-
 ### Monadic validation
 
 TODO
@@ -192,7 +191,7 @@ There are two types which are main building blocks for this library:
     newtype Validation m e a b = Validation (ReaderT a (ExceptT e m) b)
   ```
 
-So validation is nothing else as simple function from input to either error or correct output value. In this case we can consider result as sum type (sum of errors plus correct value type).
+So `Validation` is nothing else as simple function from input to either error or correct output value. In this case we can consider result as sum type (sum of errors plus correct value type).
 
 There is more complicated and involved type which aggregates validation errors/results into product type (`Record`) build upon this base:
 
@@ -210,7 +209,16 @@ which has shape:
 You can argue that `Builder` and `Validation` can be generalized to common base, but belive me I was there and it wasn't fun.
 
 
+## Conventions
+
+  * All constructors with `'` at the end expects `SProxy l` as first arguments and do tagging step too
+
+  * All combinators with `'` at the end are already tagged
+
+
 ## TODO
+
+  * Add `Alt` instance for `Validation` and write optional `password` validation example
 
   * Use `Data.Record.Builder` internally
 

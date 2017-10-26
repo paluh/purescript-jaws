@@ -23,9 +23,9 @@ derive newtype instance applicativeBuilder ∷ (Monad m) ⇒ Applicative (Builde
 derive newtype instance bindBuilder ∷ (Monad m) ⇒ Bind (Builder m e a)
 derive newtype instance monadBuilder ∷ (Monad m) ⇒ Monad (Builder m e a)
 
--- What about those - can I derive them somehow too?
+-- What about those - can I derive them somehow too? ;-)
 instance categoryBuilder ∷ (Monad m) ⇒ Category (Builder m tok) where
-id = Builder (ReaderT (\{a} → pure a))
+  id = Builder (ReaderT (\{a} → pure a))
 
 instance semigroupoidBuilder ∷ (Bind m) ⇒ Semigroupoid (Builder m tok) where
   compose (Builder b1) (Builder b2) =
