@@ -220,7 +220,7 @@ You can argue that `Builder` and `Validation` can be generalized to common base,
 
   * Add `password` validation example with `<|>` usage
   
-  * Experiment with extending base `Reader` monad with path representation
+  * Experiment with extending base `Reader` monads with path representation (~ `TypeConcat (TypeConcat parent ".") current)`)
 
   * Use `Data.Record.Builder` internally
 
