@@ -89,11 +89,11 @@ buildRecord (Builder f) =
 
 buildRecord' :: forall e e' i l m t v
   . RowCons l (Record i) e e'
-  => Monad m
-  => IsSymbol l
-  => SProxy l
-  -> Builder m t (Result {} {}) (Result (Record i) (Record v))
-  -> Validation m (Variant e') t (Record v)
+  ⇒ Monad m
+  ⇒ IsSymbol l
+  ⇒ SProxy l
+  → Builder m t (Result {} {}) (Result (Record i) (Record v))
+  → Validation m (Variant e') t (Record v)
 buildRecord' l b = tag l (buildRecord b)
 
 addField ∷ ∀ a b e i i' l m v v'
@@ -121,7 +121,7 @@ combine :: forall i i1 i2 i3 m tok v v1 v2 v3
   → RecordBuilder m tok i i2 v v2
   → RecordBuilder m tok i i3 v v3
 combine (Builder v1) (Builder v2) =
-  Builder (ReaderT $ \r -> combine' <$> (runReaderT v1 r) <*> (runReaderT v2 r))
+  Builder (ReaderT $ \r → combine' <$> (runReaderT v1 r) <*> (runReaderT v2 r))
  where
   combine' r1 r2 = case r1, r2 of
     Invalid i1, Invalid i2 → Invalid (build (merge i2) i1)

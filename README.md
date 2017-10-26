@@ -6,7 +6,9 @@
 
 ### Simple validation
 
-Let's build password form. User should provide non empty passwords twice...
+Let's build password form.
+
+User should provide non empty password twice...
 
   ```purescript
     import Data.Validation.Jaws.Record (addFieldQuery, buildRecord)
@@ -22,7 +24,7 @@ Let's build password form. User should provide non empty passwords twice...
   ```purescript
      passwordsEqual = check (\r → r.password1 == r.password2)
   ```
-...we are accepting them as correct and build a password:
+...we are accepting them as correct and build a password based on the value:
 
   ```purescript
    createPassword = pureV (_.password1 >>> Password >>> Right))
@@ -36,9 +38,7 @@ Let's combine these steps together and check them in action:
 
   ```
 
-But before we validate something few comments:
-
-  * to run validation we just call `runValidation password queryData`
+But before we validate something, few comments:
 
   * I'm using debug log (`traceAnyA`) in case of failure
 
@@ -46,6 +46,8 @@ But before we validate something few comments:
     so our validation is build upon `type Query = StrMap (Array (Maybe String))`
 
   * this library is not particularly tide to http validation
+
+  * to run validation we just call `runValidation password queryData`
 
 
  I've written simple reporter which validates and prints the results - it is not really important (check `tests/Main.purs`) in this context.
