@@ -218,7 +218,9 @@ You can argue that `Builder` and `Validation` can be generalized to common base,
 
 ## TODO
 
-  * Add `Alt` instance for `Validation` and write optional `password` validation example
+  * Add `password` validation example with `<|>` usage
+  
+  * Experiment with extending base `Reader` monad with path representation
 
   * Use `Data.Record.Builder` internally
 
