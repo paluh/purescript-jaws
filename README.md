@@ -51,50 +51,67 @@ But before we validate something, few comments:
   * to run validation we just call `runValidation password queryData`
 
 
- I've written simple reporter which validates and prints the results - it is not really important (check `tests/Main.purs`) in this context.
- Let's validate:
+ I've written simple (and ugly) reporter which validates and prints the results:
 
   ```purescript
-    validatePassword v = do
-      log ("Vaildation of value: " <> show v)
-      ...
-
-    main = do
-      validatePassword empty
-      validatePassword (fromFoldable [Tuple "password1" [Just "admin"]])
-      validatePassword (fromFoldable [Tuple "password1" [Just "admin"], Tuple "password2" [Just "pass"]])
-      validatePassword (fromFoldable [Tuple "password1" [Just "secret"], Tuple "password2" [Just "secret"]])
-   ```
-
-   ```
-    Vaildation of value: (fromFoldable [])
-    Failed on step: 'fields'
-    Trace of value:
-    { type: 'fields',
-      value:
-       { password1: Left { value0: { type: 'nonEmpty', value: {} } },
-         password2: Left { value0: { type: 'nonEmpty', value: {} } } } }
-
-
-    Vaildation of value: (fromFoldable [(Tuple "password1" [(Just "admin")])])
-    Failed on step: 'fields'
-    Trace of value:
-    { type: 'fields',
-      value:
-       { password1: Right { value0: 'admin' },
-         password2: Left { value0: { type: 'nonEmpty', value: {} } } } }
-
-
-    Vaildation of value: (fromFoldable [(Tuple "password1" [(Just "admin")]),(Tuple "password2" [(Just "pass")])])
-    Failed on step: 'equals'
-    Trace of value:
-    { type: 'equals',
-      value: { password1: 'admin', password2: 'pass' } }
-
-
-    Vaildation of value: (fromFoldable [(Tuple "password1" [(Just "secret")]),(Tuple "password2" [(Just "secret")])])
-    Passed: secret
+    validateAndPrint ∷ ∀ a e i eff m r. (Show i) ⇒ (Show r) ⇒ Validation (Eff (console ∷ CONSOLE | eff)) e i r → i → Eff (console ∷ CONSOLE | eff) Unit
+    validateAndPrint v d = do
+      r ←  runValidation v d
+      case r of
+        Right v → logShow (Right v ∷ Either Unit r)
+        e → traceAnyA e
   ```
+
+Let's validate:
+  ```purescript
+  -- both values missing
+  validateAndPrint password empty
+  ```
+
+  ```purescript
+    Left {
+      value0:
+       { type: 'fields',
+         value:
+          { password1: Left { value0: { type: 'nonEmpty', value: {} } },
+            password2: Left { value0: { type: 'nonEmpty', value: {} } } } } }
+  ```
+
+  ```purescript
+  -- one value missing
+  validateAndPrint password (fromFoldable [Tuple "password1" [Just "admin"]])
+  ```
+
+  ```purescript
+    Left {
+      value0:
+       { type: 'fields',
+         value:
+          { password1: Right { value0: 'admin' },
+            password2: Left { value0: { type: 'nonEmpty', value: {} } } } } }
+
+  ```
+
+  ```purescript
+  -- non equal passwords
+  validateAndPrint password (fromFoldable [Tuple "password1" [Just "admin"], Tuple "password2" [Just "pass"]])
+  ```
+
+  ```purescript
+    Left {
+      value0:
+       { type: 'equals',
+         value: { password1: 'admin', password2: 'pass' } } }
+  ```
+
+  ```purescript
+  -- correct data
+  validateAndPrint password (fromFoldable [Tuple "password1" [Just "secret"], Tuple "password2" [Just "secret"]])
+  ```
+
+  ```purescript
+    (Right "secret")
+   ```
 
 ### Reusing existing validation
 
@@ -120,14 +137,6 @@ We can easily build validation reusing our existing `password` component:
 And like previously if we provide correct input we are going to get just plain value:
 
   ```purescript
-    let
-      validate ∷ ∀ r. (Show r) ⇒ Validation _ _ _ r → _ → _
-      validate v d = do
-        r ←  runValidation v d
-        case r of
-          Right (r ∷ _) → logShow r
-          Left e → traceAnyA e
-
       correctData =
         (fromFoldable
           [Tuple "password1" [Just "pass"],
@@ -135,7 +144,7 @@ And like previously if we provide correct input we are going to get just plain v
            Tuple "email" [Just "email@example.com"],
            Tuple "nickname" [Just "nick"]])
 
-    validate registration correctData
+    validateAndPrint registration correctData
   ```
 
   ```purescript
@@ -153,18 +162,20 @@ but in case of invalid input...
          Tuple "email" [Just "email@example.com"],
          Tuple "nickname" [Just "nick"]])
 
-    validate registration passwordMismatch
+    validateAndPrint registration passwordMismatch
   ```
 ...we are getting precise representation of failure but other data validated:
 
   ```purescript
-    { password:
-       Left {
-         value0:
-          { type: 'equals',
-            value: { password1: 'wrong', password2: 'pass' } } },
-      email: Right { value0: 'email@example.com' },
-      nickname: Right { value0: 'nick' } }
+    Left {
+      value0:
+       { password:
+          Left {
+            value0:
+             { type: 'equals',
+               value: { password1: 'wrong', password2: 'pass' } } },
+         email: Right { value0: 'email@example.com' },
+         nickname: Right { value0: 'nick' } } }
   ```
 
 ### Monadic validation
@@ -196,7 +207,7 @@ which has shape:
     type RecordBuilder m tok i i' v v' =
       Builder m tok (Result (Record i) (Record v)) (Result (Record i') (Record v'))
   ```
-You can argue that `Builder` and `Validation` can be generalized to common base, but belive me I was there and it wasn't nice.
+You can argue that `Builder` and `Validation` can be generalized to common base, but belive me I was there and it wasn't fun.
 
 
 ## TODO

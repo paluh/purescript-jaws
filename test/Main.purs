@@ -73,45 +73,25 @@ registration =
        (addFieldFromQuery (SProxy ∷ SProxy "email") (nonEmptyString >>> email') >>>
        (addFieldFromQuery (SProxy ∷ SProxy "nickname") (nonEmptyString >>> pureV (Nickname >>> Right))))))
 
-validateAndPrint ∷ ∀ a b e eff v
-  . Show b
-  ⇒ Validation (Eff (console ∷ CONSOLE  | eff)) e a b
-  → a
-  → Eff (console ∷ CONSOLE | eff) Unit
-validateAndPrint f q = do
-  r ← runValidation f q
+
+validateAndPrint ∷ ∀ a e i eff m r. (Show i) ⇒ (Show r) ⇒ Validation (Eff (console ∷ CONSOLE | eff)) e i r → i → Eff (console ∷ CONSOLE | eff) Unit
+validateAndPrint v d = do
+  log ("Validating :" <> show d)
+
+  r ←  runValidation v d
   case r of
-    Right v → logShow v
-    Left e → traceAnyA e
+    Right v → logShow (Right v ∷ Either Unit r)
+    e → traceAnyA e
+  log "\n"
 
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do
-  let
-    validatePassword v = do
-      log ("Vaildation of value: " <> show v)
-      r ← runValidation password v
-      case r of
-        Right r → log ("Passed: " <> unwrap r)
-        Left e → do
-          (case_
-            # on (SProxy ∷ SProxy "fields") (log <<< (const "Failed on step: 'fields'"))
-            # on (SProxy ∷ SProxy "equals") (log <<< (const "Failed on step: 'equals'"))) e
-          log "Trace of value:"
-          traceAnyA e
-          log "\n"
-
-  validatePassword empty
-  validatePassword (fromFoldable [Tuple "password1" [Just "admin"]])
-  validatePassword (fromFoldable [Tuple "password1" [Just "admin"], Tuple "password2" [Just "pass"]])
-  validatePassword (fromFoldable [Tuple "password1" [Just "secret"], Tuple "password2" [Just "secret"]])
+  validateAndPrint password empty
+  validateAndPrint password (fromFoldable [Tuple "password1" [Just "admin"]])
+  validateAndPrint password (fromFoldable [Tuple "password1" [Just "admin"], Tuple "password2" [Just "pass"]])
+  validateAndPrint password (fromFoldable [Tuple "password1" [Just "secret"], Tuple "password2" [Just "secret"]])
 
   let
-    validate ∷ ∀ r. (Show r) ⇒ Validation _ _ _ r → _ → _
-    validate v d = do
-      r ←  runValidation v d
-      case r of
-        Right (r ∷ _) → logShow r
-        Left e → traceAnyA e
     correct =
       (fromFoldable
         [Tuple "password1" [Just "pass"],
@@ -124,5 +104,8 @@ main = do
          Tuple "password2" [Just "pass"],
          Tuple "email" [Just "email@example.com"],
          Tuple "nickname" [Just "nick"]])
-  validate registration correct
-  validate registration passwordMismatch
+
+  validateAndPrint registration passwordMismatch
+
+
+  validateAndPrint registration correct
