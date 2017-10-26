@@ -71,7 +71,7 @@ instance bifunctorResult ∷ Bifunctor Result where
 -- |
 -- | * just `unwraped` resulting value
 -- |
--- | * valid value wrapped in `Left` so it can
+-- | * valid value wrapped in `Right` so it can
 -- |   be easily turned into invalid value
 -- |
 -- | i, i' - invalid result types
