@@ -17,7 +17,7 @@ import Type.Prelude (class IsSymbol, class RowLacks)
 
 -- | This is just (tok → a → m b)
 newtype Builder m tok a b = Builder (ReaderT {tok ∷ tok, a ∷ a} m b)
-derive instance functorBuilder ∷ (Functor m) ⇒ Functor (Builder m e a)
+derive newtype instance functorBuilder ∷ (Functor m) ⇒ Functor (Builder m e a)
 derive newtype instance applyBuilder ∷ (Monad m) ⇒ Apply (Builder m e a)
 derive newtype instance applicativeBuilder ∷ (Monad m) ⇒ Applicative (Builder m e a)
 derive newtype instance bindBuilder ∷ (Monad m) ⇒ Bind (Builder m e a)

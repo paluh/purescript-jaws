@@ -12,6 +12,7 @@ User should provide non empty password twice...
 
   ```purescript
     import Data.Validation.Jaws.Record (addFieldQuery, buildRecord)
+    import Data.Validation.Jaws.Validation (check, pureV, tag)
 
     passwordFields =
       buildRecord
@@ -115,6 +116,55 @@ We can easily build validation reusing our existing `password` component:
         ((addField (SProxy ∷ SProxy "password") password) >>>
          (addFieldFromQuery (SProxy ∷ SProxy "email") (nonEmptyString >>> email') >>>
          (addFieldFromQuery (SProxy ∷ SProxy "nickname") (nonEmptyString >>> pureV (Nickname >>> Right)))))
+  ```
+And like previously if we provide correct input we are going to get just plain value:
+
+  ```purescript
+    let
+      validate ∷ ∀ r. (Show r) ⇒ Validation _ _ _ r → _ → _
+      validate v d = do
+        r ←  runValidation v d
+        case r of
+          Right (r ∷ _) → logShow r
+          Left e → traceAnyA e
+
+      correctData =
+        (fromFoldable
+          [Tuple "password1" [Just "pass"],
+           Tuple "password2" [Just "pass"],
+           Tuple "email" [Just "email@example.com"],
+           Tuple "nickname" [Just "nick"]])
+
+    validate registration correctData
+  ```
+
+  ```purescript
+    (Registration { email: "email@example.com", nickname: "nick", password: "pass" })
+  ```
+
+but in case of invalid input...
+
+
+  ```purescript
+    passwordMismatch =
+      (fromFoldable
+        [Tuple "password1" [Just "wrong"],
+         Tuple "password2" [Just "pass"],
+         Tuple "email" [Just "email@example.com"],
+         Tuple "nickname" [Just "nick"]])
+
+    validate registration passwordMismatch
+  ```
+...we are getting precise representation of failure but other data validated:
+
+  ```purescript
+    { password:
+       Left {
+         value0:
+          { type: 'equals',
+            value: { password1: 'wrong', password2: 'pass' } } },
+      email: Right { value0: 'email@example.com' },
+      nickname: Right { value0: 'nick' } }
   ```
 
 ### Monadic validation
