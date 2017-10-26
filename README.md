@@ -39,9 +39,9 @@ Let's combine these steps together and check them in action:
 
   ```
 
-When you see `SProxy :: SProxy label` you can think of a labeling validation step. Labeling steps is necessary in case of "sum validation" - where validation is chained one after another. It's basically `a -> Either e b` chain.
+When you see `SProxy :: SProxy label` you can think of a labeling validation step. Labeling steps is necessary in case of "sum validation" - where validation is chained one after another. It's basically `a -> Either e b` chain where every `e` can and should be labeled (thanks to `purescript-variant`!) to form single coproduct type.
 
-On the other hand we have also products/records build up steps. This kind of validation steps aggregates all results into product (through `addField` or dedicated query helper `addFieldFromQuery`). In this context labeling result in record field name. Resulting product value would contain all valid, but also invalid values (values wrapped in `Either`), but if whole validation passes you would get product without any additional wrapping!
+On the other hand we have also products/records build up steps. This kind of validation steps aggregates all results into product (through `addField` or dedicated query helper `addFieldFromQuery`). In this context labeling is just giving record field a name. Resulting product value would contain all valid, but also invalid values (values wrapped in `Either`), but if the whole validation processes passes you would get record without any additional wrapping!
 
 Few additional comments regarding following examples:
 
@@ -182,6 +182,94 @@ but in case of invalid input...
          email: Right { value0: 'email@example.com' },
          nickname: Right { value0: 'nick' } } }
   ```
+
+### Tweaking
+
+Now let's consider a bit more difficult reusability scenario - we want to provide profile edit form:
+
+  ```purescript
+    newtype Profile = Profile
+      { nickname ∷ Nickname
+      , bio ∷ Maybe String
+      , age ∷ Maybe Int
+      , password ∷ Maybe Password
+      }
+    derive instance genericProfile ∷ Generic Profile _
+    instance showProfile ∷ Show Profile where
+      show = genericShow
+  ```
+But in this context we want to validate also case where user leaves two passwords empty. In that case
+we don't update it's value in our db.
+
+To add this additional scenario we should bulid validator which passes when two values from query (just a recap - `type Query = StrMap (Array (Maybe String))`) are empty.
+In this case our final password value should be `Nothing`.
+As usual we are going to use `pureV` constructor which has type `pureV ∷ (Monad m) ⇒ (a → Either e b) → Validation m e a b` in other words it lifts simple validation function
+into our validation monad stack. `a` type is an result from previous validation steps.
+
+Lets build this simple combinator from scratch (I've added type for clarity):
+
+  ```purescript
+   emptyString ∷ ∀ m. Monad m ⇒ String → Validation m Unit Query (Maybe String)
+   emptyString p = pureV (\query → case lookup p query of
+      Nothing → Right Nothing
+      Just [Nothing] → Right Nothing
+      Just [Just ""] → Right Nothing
+      _ → Left unit)
+  ```
+WAT? Yes, we are considering these THREE values as emtpy ;-)
+We can read above `Validation` (there is also complementary type for "product validation") signature as follows:
+
+  * `m` - monad which we are using as the context for validation
+  * `Unit` - error type
+  * `Query` - previous validation step result
+  * `Maybe String` - successful validation result type
+
+
+Now we can validate both passwords using above combinator:
+
+  ```purescript
+    emptyPasswords = emptyPassword "password1" >>= const (emptyPassword "password2")
+  ```
+
+TODO: more docs soon
+
+  ```purescript
+    profile =
+      Profile <$>
+        (buildRecord
+          ((addField (SProxy ∷ SProxy "password") ((Just <$> password) <|> tag (SProxy ∷ SProxy "empty") emptyPasswords)) >>>
+            addFieldFromQuery (SProxy ∷ SProxy "bio") (scalar <|> pure Nothing) >>>
+            addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
+            addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
+  let
+    onlyNickname =
+      (fromFoldable
+        [Tuple "nickname" [Just "nick"]])
+
+  validateAndPrint profile onlyNickname
+  ```
+
+  ```purescript
+  (Right (Profile { age: Nothing, bio: Nothing, nickname: "nick", password: Nothing }))
+  ```
+
+  ```purescript
+  let
+    nicknameAndPassword =
+      (fromFoldable
+        [Tuple "nickname" [Just "nick"],
+         Tuple "password1" [Just "new"],
+         Tuple "password2" [Just "new"]])
+  ```
+
+  ```purescript
+  validateAndPrint profile nicknameAndPassword
+  ```
+
+
+(Right (Profile { age: Nothing, bio: Nothing, nickname: "nick", password: (Just "new") }))
+
+
 ### Monadic validation
 
 TODO

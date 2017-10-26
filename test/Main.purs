@@ -2,6 +2,8 @@ module Test.Main where
 
 import Prelude
 
+import Control.Alternative ((<|>))
+import Control.Error.Util (note)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log, logShow)
 import Data.Either (Either(..))
@@ -9,13 +11,14 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
-import Data.StrMap (StrMap, empty, fromFoldable)
+import Data.NonEmpty (NonEmpty(..))
+import Data.StrMap (StrMap, empty, fromFoldable, lookup)
 import Data.String (Pattern(..), contains)
 import Data.Symbol (SProxy(SProxy))
 import Data.Tuple (Tuple(..))
-import Data.Validation.Jaws.Http (addFieldFromQuery, nonEmptyString)
+import Data.Validation.Jaws.Http (Query, addFieldFromQuery, catMaybesV, int, int', nonEmptyArray, nonEmptyArray', nonEmptyString, optional, scalar, scalar')
 import Data.Validation.Jaws.Record (addField, buildRecord, buildRecord', combine)
-import Data.Validation.Jaws.Validation (PureValidation, Validation, check, check', pureV, runValidation, tag)
+import Data.Validation.Jaws.Validation (PureValidation, Validation, check, check', pureV, pureV', runValidation, tag)
 import Data.Variant (Variant, on, case_)
 import Debug.Trace (traceAnyA)
 
@@ -40,11 +43,10 @@ derive instance genericRegistration ∷ Generic Registration _
 instance showRegistration ∷ Show Registration where
   show = genericShow
 
-
 -- This is how we create validation
 -- All Validation constructors which have ampersand at the end
 -- are taking symbol as and wraps error in Variant
-email' ∷ ∀ v. PureValidation (Variant (email ∷ String | v)) String  Email
+email' ∷ ∀ m v. (Monad m) ⇒ Validation m (Variant (email ∷ String | v)) String  Email
 email' = check' (SProxy ∷ SProxy "email") (contains (Pattern "@")) >>> pureV (Email >>> Right)
 
 passwordFields =
@@ -60,12 +62,7 @@ password =
   (tag (SProxy ∷ SProxy "fields") passwordFields) >>>
   (tag (SProxy ∷ SProxy "equals") (passwordsEqual >>> createPassword))
 
-
-registration :: forall t189 t205 t206 t207 t230 t244.
-   Functor t189 => Bind t189 => Monad t189 => Validation t189
-                                                _
-                                                _
-                                                Registration
+registration :: forall m. Monad m => Validation m _ Query Registration
 registration =
   Registration <$>
     (buildRecord
@@ -73,6 +70,36 @@ registration =
        (addFieldFromQuery (SProxy ∷ SProxy "email") (nonEmptyString >>> email') >>>
        (addFieldFromQuery (SProxy ∷ SProxy "nickname") (nonEmptyString >>> pureV (Nickname >>> Right))))))
 
+
+newtype Profile = Profile
+  { nickname ∷ Nickname
+  , bio ∷ Maybe String
+  , age ∷ Maybe Int
+  , password ∷ Maybe Password
+  }
+derive instance genericProfile ∷ Generic Profile _
+instance showProfile ∷ Show Profile where
+  show = genericShow
+
+
+emptyString :: ∀ a m. (Monad m) ⇒ String → Validation m Unit Query (Maybe a)
+emptyString p = pureV (\query → case lookup p query of
+   Nothing → Right Nothing
+   Just [Nothing] → Right Nothing
+   Just [Just ""] → Right Nothing
+   _ → Left unit)
+
+emptyPasswords =
+   emptyString "password1" >>= const (emptyString "password2")
+
+-- profile :: forall a e m. Monad m => Validation m e a _
+profile =
+  Profile <$>
+    (buildRecord
+      ((addField (SProxy ∷ SProxy "password") ((Just <$> password) <|> tag (SProxy ∷ SProxy "empty") emptyPasswords)) >>>
+        addFieldFromQuery (SProxy ∷ SProxy "bio") (scalar <|> pure Nothing) >>>
+        addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
+        addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
 
 validateAndPrint ∷ ∀ a e i eff m r. (Show i) ⇒ (Show r) ⇒ Validation (Eff (console ∷ CONSOLE | eff)) e i r → i → Eff (console ∷ CONSOLE | eff) Unit
 validateAndPrint v d = do
@@ -107,5 +134,19 @@ main = do
 
   validateAndPrint registration passwordMismatch
 
-
   validateAndPrint registration correct
+
+  let
+    onlyNickname =
+      (fromFoldable
+        [Tuple "nickname" [Just "nick"]])
+  validateAndPrint profile onlyNickname
+
+  let
+    nicknameAndPassword =
+      (fromFoldable
+        [Tuple "nickname" [Just "nick"],
+         Tuple "password1" [Just "new"],
+         Tuple "password2" [Just "new"]])
+
+  validateAndPrint profile nicknameAndPassword

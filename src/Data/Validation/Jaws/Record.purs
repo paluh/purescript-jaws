@@ -79,6 +79,9 @@ instance bifunctorResult ∷ Bifunctor Result where
 type RecordBuilder m tok i i' v v' =
   Builder m tok (Result (Record i) (Record v)) (Result (Record i') (Record v'))
 
+type TupleBuilder m tok i i' v v' =
+  Builder m tok (Result i v) (Result i' v')
+
 buildRecord ∷ ∀ i m tok v. (Functor m) ⇒ RecordBuilder m tok () i () v → Validation m (Record i) tok (Record v)
 buildRecord (Builder f) =
   Validation (ReaderT $ (\tok → ExceptT $ toEither <$> (runReaderT f {tok, a: Valid {} {}})))

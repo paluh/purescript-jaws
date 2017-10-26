@@ -12,7 +12,7 @@ import Data.Profunctor (dimap)
 import Data.Profunctor.Choice (right)
 import Data.StrMap (StrMap, lookup)
 import Data.Validation.Jaws.Record (RecordBuilder, addField)
-import Data.Validation.Jaws.Validation (Validation(..), PureValidation, pureV, tag)
+import Data.Validation.Jaws.Validation (Validation(..), pureV, tag)
 import Data.Variant (Variant)
 import Type.Prelude (class IsSymbol, class RowLacks, SProxy(..), reflectSymbol)
 
@@ -38,36 +38,40 @@ addFieldFromQuery p (Validation v) =
   addField p (Validation (ReaderT (\query → runReaderT v (fromMaybe [] (lookup (reflectSymbol p) query)))))
 
 optional ∷ ∀ a b e m. (Monad m) ⇒ Validation m e a b → Validation m e (Array a) (Maybe b)
-optional v =
-  dimap (head >>> note unit) hush (right v)
+optional v = dimap (head >>> note unit) hush (right v)
 
 catMaybesV :: forall a e m. (Monad m) ⇒ Validation m e (Array (Maybe a)) (Array a)
 catMaybesV = pureV (catMaybes >>> Right)
 
-nonEmpty ∷ ∀ a m. (Monad m) ⇒ Validation m Unit (Array a) (NonEmpty Array a)
-nonEmpty  =
+emptyArrayV ∷ ∀ a m. (Monad m) ⇒ Validation m (Array a) (Array a) Unit
+emptyArrayV = pureV $ (case _ of
+  [] → Right unit
+  a → Left a)
+
+nonEmptyArray ∷ ∀ a m. (Monad m) ⇒ Validation m Unit (Array a) (NonEmpty Array a)
+nonEmptyArray  =
   pureV $ (uncons >=> (\r → pure (r.head :| r.tail))) >>> note unit
 
-nonEmpty' ∷ ∀ a v m. (Monad m) ⇒ Validation m (Variant (nonEmpty ∷ Unit | v)) (Array a) (NonEmpty Array a)
-nonEmpty' = tag (SProxy ∷ SProxy "nonEmpty") nonEmpty
+nonEmptyArray' ∷ ∀ a v m. (Monad m) ⇒ Validation m (Variant (nonEmptyArray ∷ Unit | v)) (Array a) (NonEmpty Array a)
+nonEmptyArray' = tag (SProxy ∷ SProxy "nonEmptyArray") nonEmptyArray
 
-scalar ∷ ∀ a m. (Monad m) ⇒ Validation m (NonEmpty Array a) (NonEmpty Array a) a
+scalar ∷ ∀ a m. (Monad m) ⇒ Validation m (Array a) (Array a) a
 scalar = pureV s
  where
-  s (a :| []) = Right a
-  s l = Left l
+  s [a] = Right a
+  s arr = Left arr
 
-scalar' ∷ ∀ a v m. (Monad m) ⇒ Validation m (Variant (scalar ∷ NonEmpty Array a | v)) (NonEmpty Array a) a
+scalar' ∷ ∀ a v m. (Monad m) ⇒ Validation m (Variant (scalar ∷ Array a | v)) (Array a) a
 scalar' = tag (SProxy ∷ SProxy "scalar") scalar
 
-int :: PureValidation String String Int
+int ∷ ∀ m. (Monad m) ⇒ Validation m String String Int
 int = pureV (\s → note s (fromString s))
 
-int' ∷ PureValidation (Variant (int ∷ String)) String Int
+int' ∷ ∀ m v. (Monad m) ⇒ Validation m (Variant (int ∷ String | v)) String Int
 int' = tag (SProxy ∷ SProxy "int") int
 
-nonEmptyString ∷ ∀ m v. (Monad m) ⇒ Validation m (Variant (nonEmpty ∷ Unit, scalar ∷ NonEmpty Array String | v)) (Array (Maybe String)) String
+nonEmptyString ∷ ∀ m v. (Monad m) ⇒ Validation m (Variant (nonEmptyArray ∷ Unit, scalar ∷ Array String | v)) (Array (Maybe String)) String
 nonEmptyString =
-  catMaybesV >>> nonEmpty' >>> scalar' >>> (tag (SProxy ∷ SProxy "nonEmpty") $ pureV (case _ of
+  catMaybesV >>> scalar' >>> (tag (SProxy ∷ SProxy "nonEmptyArray") $ pureV (case _ of
     "" → Left unit
     s → Right s))
