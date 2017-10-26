@@ -36,11 +36,11 @@ Let's combine these steps together and check them in action:
 
   ```
 
-But before we validate something, some boring stuff:
+But before we validate something few comments:
 
   * to run validation we just call `runValidation password queryData`
 
-  * I'm using debug log (`traceAnyA`) in case of failure because instance for `Show` is missing in case of records
+  * I'm using debug log (`traceAnyA`) in case of failure
 
   * we have used `Data.Validation.Jaws.Http.nonEmptyString` as entry point for our fields together with `addFieldFromQuery`
     so our validation is build upon `type Query = StrMap (Array (Maybe String))`
@@ -48,7 +48,8 @@ But before we validate something, some boring stuff:
   * this library is not particularly tide to http validation
 
 
- I've simple reporter which validates and prints the results - it is not really important (check `tests/Main.purs`). Let's validate:
+ I've written simple reporter which validates and prints the results - it is not really important (check `tests/Main.purs`) in this context.
+ Let's validate:
 
   ```purescript
     validatePassword v = do
@@ -120,7 +121,7 @@ TODO
 
 ### Product and coproduct validation results
 
-There are two main types which are main building blocks for this library:
+There are two types which are main building blocks for this library:
 
   ```purescript
     -- It's just (a → m (Either e b)) but those transformers
