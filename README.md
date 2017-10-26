@@ -312,11 +312,11 @@ You can argue that `Builder` and `Validation` can be generalized to common base,
 ## TODO
 
   * Add `password` validation example with `<|>` usage
-  
+
   * Use `Data.Record.Builder` internally
 
   * How to label and generalize paths and how to pass this through base `Reader` monads stack
-  
+
   * Provide more basic validators for http
 
   * Test `HStack` as an alternative for records
