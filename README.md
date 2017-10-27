@@ -211,10 +211,10 @@ Lets build this simple combinator from scratch (I've added type for clarity):
   ```purescript
    missingValue ∷ ∀ a m. Monad m ⇒ String → Validation m Unit Query (Maybe a)
    missingValue p = check (\query → case lookup p query of
-      Nothing → True
-      Just [Nothing] → True
-      Just [Just ""] → True
-      _ → False)
+      Nothing → true
+      Just [Nothing] → true
+      Just [Just ""] → true
+      _ → false)
   ```
 WAT? Yes, we are considering these THREE values as emtpy ;-)
 We can read above `Validation` (there is also complementary type for "product validation") signature as follows:
@@ -321,8 +321,6 @@ You can argue that `Builder` and `Validation` can be generalized to common base,
   * Add `password` validation example with `<|>` usage
 
   * Use `Data.Record.Builder` internally
-
-  * How to label and generalize paths and how to pass this through base `Reader` monads stack
 
   * Provide more basic validators for http
 
