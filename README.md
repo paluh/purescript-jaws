@@ -245,7 +245,7 @@ TODO: more docs soon...
     profile =
       Profile <$>
         (buildRecord
-          ((addField (SProxy ∷ SProxy "password") ((Just <$> password) <|> emptyPasswords')) >>>
+          ((addField (SProxy ∷ SProxy "password") (emptyPasswords' <|> (Just <$> password)) >>>
             addFieldFromQuery (SProxy ∷ SProxy "bio") (scalar <|> pure Nothing) >>>
             addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
             addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
@@ -278,6 +278,31 @@ TODO: more docs soon...
   ```purescript
   (Right (Profile { age: Nothing, bio: Nothing, nickname: "nick", password: (Just "new") }))
   ```
+
+  ```purescript
+  let
+    nicknameAndPasswordMismatch =
+      (fromFoldable
+        [ Tuple "nickname" [Just "nick"]
+        , Tuple "password1" [Just "wrong"]
+        , Tuple "password2" [Just "new"]])
+
+  validateAndPrint profile nicknameAndPasswordMismatch
+  ```
+
+  ```purescript
+    Left {
+      value0:
+       { password:
+          Left {
+            value0:
+             { type: 'equals',
+               value: { password1: 'wrong', password2: 'new' } } },
+         bio: Right { value0: Nothing {} },
+         age: Right { value0: Nothing {} },
+         nickname: Right { value0: 'nick' } } }
+  ```
+
 
 
 ### Monadic validation

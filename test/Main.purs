@@ -92,14 +92,16 @@ missingValue p = check (\query → case lookup p query of
 emptyPasswords =
    missingValue "password1" >>> missingValue "password2" >>> pure Nothing
 
+emptyPasswords' = tag (SProxy ∷ SProxy "empty") emptyPasswords
+
 -- profile :: forall a e m. Monad m => Validation m e a _
 profile =
   Profile <$>
     (buildRecord
-      ((addField (SProxy ∷ SProxy "password") ((Just <$> password) <|> tag (SProxy ∷ SProxy "empty") emptyPasswords)) >>>
-        addFieldFromQuery (SProxy ∷ SProxy "bio") (scalar <|> pure Nothing) >>>
-        addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
-        addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
+      (addField (SProxy ∷ SProxy "password") (emptyPasswords' <|> (Just <$> password)) >>>
+       addFieldFromQuery (SProxy ∷ SProxy "bio") (scalar <|> pure Nothing) >>>
+       addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
+       addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
 
 validateAndPrint ∷ ∀ a e i eff m r. (Show i) ⇒ (Show r) ⇒ Validation (Eff (console ∷ CONSOLE | eff)) e i r → i → Eff (console ∷ CONSOLE | eff) Unit
 validateAndPrint v d = do
@@ -150,3 +152,12 @@ main = do
         , Tuple "password2" [Just "new"]])
 
   validateAndPrint profile nicknameAndPassword
+
+  let
+    nicknameAndPasswordMismatch =
+      (fromFoldable
+        [ Tuple "nickname" [Just "nick"]
+        , Tuple "password1" [Just "wrong"]
+        , Tuple "password2" [Just "new"]])
+
+  validateAndPrint profile nicknameAndPasswordMismatch
