@@ -21,7 +21,8 @@ derive newtype instance applicativeValidation ∷ (Monad m) ⇒ Applicative (Val
 derive newtype instance bindValidation ∷ (Monad m) ⇒ Bind (Validation m e a)
 derive newtype instance monadValidation ∷ (Monad m) ⇒ Monad (Validation m e a)
 
--- XXX: Fix it - add monoid instance for e and aggregate errors
+-- XXX: How to sum errors without API cluttering
+-- and monoid requirement by default
 instance altValidation ∷ (Monad m) ⇒ Alt (Validation m e a) where
   alt v1 v2 = Validation <<< ReaderT $ (\a → ExceptT $ do
     eb <- runValidation v1 a
