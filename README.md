@@ -209,12 +209,12 @@ into our validation monad stack. `a` type is an result from previous validation 
 Lets build this simple combinator from scratch (I've added type for clarity):
 
   ```purescript
-   emptyString ∷ ∀ a m. Monad m ⇒ String → Validation m Unit Query (Maybe a)
-   emptyString p = pureV (\query → case lookup p query of
-      Nothing → Right Nothing
-      Just [Nothing] → Right Nothing
-      Just [Just ""] → Right Nothing
-      _ → Left unit)
+   missingValue ∷ ∀ a m. Monad m ⇒ String → Validation m Unit Query (Maybe a)
+   missingValue p = check (\query → case lookup p query of
+      Nothing → True
+      Just [Nothing] → True
+      Just [Just ""] → True
+      _ → False)
   ```
 WAT? Yes, we are considering these THREE values as emtpy ;-)
 We can read above `Validation` (there is also complementary type for "product validation") signature as follows:
@@ -228,7 +228,7 @@ We can read above `Validation` (there is also complementary type for "product va
 Now we can validate both passwords using above combinator:
 
   ```purescript
-    emptyPasswords = (emptyPassword "password1" >>= const (emptyPassword "password2"))
+    emptyPasswords = (missingValue "password1" >>> missingValue "password2" >>> pure Nothing)
   ```
 and tag this step too:
 

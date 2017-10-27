@@ -82,15 +82,15 @@ instance showProfile ∷ Show Profile where
   show = genericShow
 
 
-emptyString :: ∀ a m. (Monad m) ⇒ String → Validation m Unit Query (Maybe a)
-emptyString p = pureV (\query → case lookup p query of
-   Nothing → Right Nothing
-   Just [Nothing] → Right Nothing
-   Just [Just ""] → Right Nothing
-   _ → Left unit)
+-- missingValue :: ∀ a m. (Monad m) ⇒ String → Validation m Unit Query Query
+missingValue p = check (\query → case lookup p query of
+   Nothing → true
+   (Just [Nothing]) → true
+   (Just [Just ""]) → true
+   _ → false)
 
 emptyPasswords =
-   emptyString "password1" >>= const (emptyString "password2")
+   missingValue "password1" >>> missingValue "password2" >>> pure Nothing
 
 -- profile :: forall a e m. Monad m => Validation m e a _
 profile =
