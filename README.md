@@ -2,7 +2,7 @@
 
 "Two dimentional" composable validation toolkit. Still in α-stage.
 
-## Showtime
+## Usage
 
 ### Simple validation
 
@@ -281,7 +281,7 @@ TODO: more docs soon...
 
 TODO
 
-### Product and coproduct validation results
+## Show me the types
 
 There are two types which are main building blocks for this library:
 
