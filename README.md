@@ -311,47 +311,7 @@ TODO
 
 ## Show me the types
 
-There are two types which are main building blocks for this library:
-
-  ```purescript
-    -- It's just (a → m (Either e b)) but those transformers
-    -- give us so many things for free...
-    newtype Validation m e a b = Validation (ReaderT a (ExceptT e m) b)
-  ```
-
-So `Validation` is nothing else as simple function from input to either error or correct output value. In this case we can consider result as sum type (sum of errors plus correct value type).
-
-What is really important we can write and `Semigroupoid` and `Category` instances for this type as follows:
-
-
-  ```purescript
-    instance semigroupoidValidation ∷ (Monad m) ⇒ Semigroupoid (Validation m e) where
-      compose (Validation v2) (Validation v1) =
-        Validation (ReaderT (runReaderT v1 >=> runReaderT v2))
-
-    instance categoryValidation ∷ (Monad m) ⇒ Category (Validation m e) where
-      id = Validation (ReaderT pure)
-  ```
-
-So it is just an Kleisli Arrow for our ReaderT underlining monad.
-
-
-There is more complicated and involved type which aggregates validation errors/results into product type (`Record`) build upon this base:
-
-  ```purescript
-    -- | This is just (tok → a → m b)
-    newtype Builder m tok a b = Builder (ReaderT {tok ∷ tok, a ∷ a} m b)
-  ```
-
-which has shape:
-
-  ```purescript
-    type RecordBuilder m tok i i' v v' =
-      Builder m tok (Result (Record i) (Record v)) (Result (Record i') (Record v'))
-  ```
-You can argue that `Builder` and `Validation` can be generalized to common base, but belive me I was there and it wasn't fun.
-
-TODO: More about `Builder` category and monad stack soon ;-)
+TODO
 
 
 ## Conventions
