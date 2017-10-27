@@ -137,7 +137,7 @@ We can easily build validation reusing our existing `password` component:
       Registration <$> buildRecord
         ((addField (SProxy ∷ SProxy "password") password) >>>
          (addFieldFromQuery (SProxy ∷ SProxy "email") (nonEmptyString >>> email') >>>
-         (addFieldFromQuery (SProxy ∷ SProxy "nickname") (nonEmptyString >>> pureV (Nickname >>> Right)))))
+         (addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString))))
   ```
 And like previously if we provide correct input we are going to get just plain value:
 
