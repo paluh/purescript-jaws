@@ -121,16 +121,16 @@ main = do
   let
     correct =
       (fromFoldable
-        [Tuple "password1" [Just "pass"],
-         Tuple "password2" [Just "pass"],
-         Tuple "email" [Just "email@example.com"],
-         Tuple "nickname" [Just "nick"]])
+        [ Tuple "password1" [Just "pass"]
+        , Tuple "password2" [Just "pass"]
+        , Tuple "email" [Just "email@example.com"]
+        , Tuple "nickname" [Just "nick"]])
     passwordMismatch =
       (fromFoldable
-        [Tuple "password1" [Just "wrong"],
-         Tuple "password2" [Just "pass"],
-         Tuple "email" [Just "email@example.com"],
-         Tuple "nickname" [Just "nick"]])
+        [ Tuple "password1" [Just "wrong"]
+        , Tuple "password2" [Just "pass"]
+        , Tuple "email" [Just "email@example.com"]
+        , Tuple "nickname" [Just "nick"]])
 
   validateAndPrint registration passwordMismatch
 
@@ -145,8 +145,8 @@ main = do
   let
     nicknameAndPassword =
       (fromFoldable
-        [Tuple "nickname" [Just "nick"],
-         Tuple "password1" [Just "new"],
-         Tuple "password2" [Just "new"]])
+        [ Tuple "nickname" [Just "nick"]
+        , Tuple "password1" [Just "new"]
+        , Tuple "password2" [Just "new"]])
 
   validateAndPrint profile nicknameAndPassword

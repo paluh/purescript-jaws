@@ -206,10 +206,10 @@ In this case our final password value should be `Nothing`.
 As usual we are going to use `pureV` constructor which has type `pureV ∷ (Monad m) ⇒ (a → Either e b) → Validation m e a b` in other words it lifts simple validation function
 into our validation monad stack. `a` type is an result from previous validation steps.
 
-Lets build this simple combinator from scratch (I've added type for clarity):
+Lets build this simple combinator from scratch:
 
   ```purescript
-   missingValue ∷ ∀ a m. Monad m ⇒ String → Validation m Unit Query (Maybe a)
+   missingValue ∷ ∀ a m. Monad m ⇒ String → Validation m Unit Query Query
    missingValue p = check (\query → case lookup p query of
       Nothing → true
       Just [Nothing] → true
@@ -217,19 +217,22 @@ Lets build this simple combinator from scratch (I've added type for clarity):
       _ → false)
   ```
 WAT? Yes, we are considering these THREE values as emtpy ;-)
+
+Now we can validate both passwords using above combinator to form final validation:
+
+  ```purescript
+    emptyPasswords ∷ ∀ a m. Monad m ⇒ Validation m Unit Query (Maybe a)
+    emptyPasswords = (missingValue "password1" >>> missingValue "password2" >>> pure Nothing)
+  ```
+
 We can read above `Validation` (there is also complementary type for "product validation") signature as follows:
 
   * `m` - monad which we are using as the context for validation
   * `Unit` - error type
   * `Query` - previous validation step result
-  * `Maybe String` - successful validation result type
+  * `Maybe a` - successful validation result type (this `a` polimorphism doesn't hurt here ;-))
 
 
-Now we can validate both passwords using above combinator:
-
-  ```purescript
-    emptyPasswords = (missingValue "password1" >>> missingValue "password2" >>> pure Nothing)
-  ```
 and tag this step too:
 
   ```purescript
