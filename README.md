@@ -144,10 +144,10 @@ And like previously if we provide correct input we are going to get just plain v
   ```purescript
       correctData =
         (fromFoldable
-          [Tuple "password1" [Just "pass"],
-           Tuple "password2" [Just "pass"],
-           Tuple "email" [Just "email@example.com"],
-           Tuple "nickname" [Just "nick"]])
+          [ Tuple "password1" [Just "pass"]
+          , Tuple "password2" [Just "pass"]
+          , Tuple "email" [Just "email@example.com"]
+          , Tuple "nickname" [Just "nick"]])
 
     validateAndPrint registration correctData
   ```
@@ -162,10 +162,10 @@ but in case of invalid input...
   ```purescript
     passwordMismatch =
       (fromFoldable
-        [Tuple "password1" [Just "wrong"],
-         Tuple "password2" [Just "pass"],
-         Tuple "email" [Just "email@example.com"],
-         Tuple "nickname" [Just "nick"]])
+        [ Tuple "password1" [Just "wrong"]
+        , Tuple "password2" [Just "pass"]
+        , Tuple "email" [Just "email@example.com"]
+        , Tuple "nickname" [Just "nick"]])
 
     validateAndPrint registration passwordMismatch
   ```
@@ -262,9 +262,9 @@ TODO: more docs soon...
   let
     nicknameAndPassword =
       (fromFoldable
-        [Tuple "nickname" [Just "nick"],
-         Tuple "password1" [Just "new"],
-         Tuple "password2" [Just "new"]])
+        [ Tuple "nickname" [Just "nick"]
+        , Tuple "password1" [Just "new"]
+        , Tuple "password2" [Just "new"]])
   ```
 
   ```purescript
@@ -293,6 +293,21 @@ There are two types which are main building blocks for this library:
 
 So `Validation` is nothing else as simple function from input to either error or correct output value. In this case we can consider result as sum type (sum of errors plus correct value type).
 
+What is really important we can write and `Semigroupoid` and `Category` instances for this type as follows:
+
+
+  ```purescript
+    instance semigroupoidValidation ∷ (Monad m) ⇒ Semigroupoid (Validation m e) where
+      compose (Validation v2) (Validation v1) =
+        Validation (ReaderT (runReaderT v1 >=> runReaderT v2))
+
+    instance categoryValidation ∷ (Monad m) ⇒ Category (Validation m e) where
+      id = Validation (ReaderT pure)
+  ```
+
+So it is just an Kleisli Arrow for our ReaderT underlining monad.
+
+
 There is more complicated and involved type which aggregates validation errors/results into product type (`Record`) build upon this base:
 
   ```purescript
@@ -307,6 +322,8 @@ which has shape:
       Builder m tok (Result (Record i) (Record v)) (Result (Record i') (Record v'))
   ```
 You can argue that `Builder` and `Validation` can be generalized to common base, but belive me I was there and it wasn't fun.
+
+TODO: More about `Builder` category and monad stack soon ;-)
 
 
 ## Conventions
