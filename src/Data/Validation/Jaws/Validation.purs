@@ -53,23 +53,20 @@ instance choiceValidation ∷ (Monad m) ⇒ Choice (Validation m e) where
     v' (Left l) = pure (Left l)
     v' (Right input) = Right <$> (runReaderT v input)
 
-runValidation ∷ ∀ a b e m. Validation m e a b → a → m (Either e b)
-runValidation (Validation v) = runExceptT <$> runReaderT v
+-- | Beside these four constructors you can also use just Applicative `pure`
+validation ∷ ∀ a b e m. (a → m (Either e b)) → Validation m e a b
+validation f = Validation <<< ReaderT $ (\a → ExceptT (f a))
 
-type PureValidation e a b = ∀ m. (Monad m) ⇒ Validation m e a b
-
-tag :: forall a b e m p r r'
+validation' ∷ forall a b e m p r r'
   . RowCons p e r r'
   ⇒ Monad m
   ⇒ IsSymbol p
   ⇒ SProxy p
-  → Validation m e a b
+  → (a → m (Either e b))
   → Validation m (Variant r') a b
-tag p (Validation v) =
-  Validation (ReaderT $ fmapLT (inj p) <$> runReaderT v)
+validation' l f = tag l (validation f)
 
--- lift function which takes token and result
-pureV ∷ ∀ a b e. (a → Either e b) → PureValidation e a b
+pureV ∷ ∀ a b e. (a → Either e b) → ∀ m. (Monad m) ⇒ Validation m e a b
 pureV f = Validation (ReaderT (f >>> pure >>> ExceptT))
 
 pureV' ∷ forall a b e m p r r'
@@ -80,6 +77,19 @@ pureV' ∷ forall a b e m p r r'
   → (a → Either e b)
   → Validation m (Variant r') a b
 pureV' l f = tag l (pureV f)
+
+runValidation ∷ ∀ a b e m. Validation m e a b → a → m (Either e b)
+runValidation (Validation v) = runExceptT <$> runReaderT v
+
+tag :: forall a b e m p r r'
+  . RowCons p e r r'
+  ⇒ Monad m
+  ⇒ IsSymbol p
+  ⇒ SProxy p
+  → Validation m e a b
+  → Validation m (Variant r') a b
+tag p (Validation v) =
+  Validation (ReaderT $ fmapLT (inj p) <$> runReaderT v)
 
 check :: forall a m
   . (Monad m)
@@ -98,4 +108,3 @@ check' :: forall a l m r r'
   → (a → Boolean)
   → Validation m (Variant r') a a
 check' t = check >>> tag t
-

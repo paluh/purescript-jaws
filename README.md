@@ -323,11 +323,13 @@ TODO
 
 ## TODO
 
-  * Add `password` validation example with `<|>` usage
-
   * Use `Data.Record.Builder` internally
 
-  * Provide more basic validators for http
+  * Is there any nice general representation for "product" builder which can be used for Tuple, Record, HStack?
 
   * Test `HStack` as an alternative for records
+
+  * How to do tagging in more principled way
+
+  * Provide more basic validators for http
 
