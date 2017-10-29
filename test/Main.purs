@@ -18,7 +18,7 @@ import Data.Symbol (SProxy(SProxy))
 import Data.Tuple (Tuple(..))
 import Data.Validation.Jaws.Http (Query, addFieldFromQuery, catMaybesV, int, int', nonEmptyArray, nonEmptyArray', nonEmptyString, optional, scalar, scalar')
 import Data.Validation.Jaws.Record (addField, buildRecord, buildRecord', combine)
-import Data.Validation.Jaws.Validation (PureValidation, Validation, check, check', pureV, pureV', runValidation, tag)
+import Data.Validation.Jaws.Validation (Validation, check, check', pureV, pureV', runValidation, tag)
 import Data.Variant (Variant, on, case_)
 import Debug.Trace (traceAnyA)
 
