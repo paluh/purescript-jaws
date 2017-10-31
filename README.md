@@ -354,6 +354,9 @@ TODO
 
 ## TODO
 
+  * Experiment scenario: drop monad instance for `ProductValidation` and rebuild `Applicative` instance dependent on `b`,
+  add apply instance to `Result` and... write test for applicative validation
+
   * Use `Data.Record.Builder` internally
 
   * Provide more basic validators for http

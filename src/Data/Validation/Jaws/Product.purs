@@ -15,15 +15,12 @@ import Data.Tuple (Tuple(..))
 import Type.Prelude (class IsSymbol, class RowLacks)
 
 -- | This is really general type which is specialized below.
--- | I'm thinking of it as a builder which extracts/validates
--- | product elements from given `tok` and builds final value "attaching" them to
--- | result from previous validation steps.
+-- | I'm thinking of it here as a builder which extracts/validates
+-- | product elements from given `tok`, "attaching" them to
+-- | results from previous validation steps `a`.
 -- | It is really close to categorical view of product - if we want to
 -- | treat input data `tok` as product we have to be able to provide
 -- | morphisms which extract elements of this product from it.
--- | As with CoproductValidation we don't want to use
--- | `ReaderT` here because it can be used in user application monad
--- | stack.
 newtype Builder m tok a b = Builder (tok → a → m b)
 derive instance functorBuilder ∷ (Functor m) ⇒ Functor (Builder m tok a)
 

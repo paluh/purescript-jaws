@@ -12,12 +12,10 @@ import Data.Symbol (class IsSymbol, SProxy)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 
--- | I've called it `Coproduct` because composition of these
--- | validation steps produces on of error values or result
-
--- I'm not able to express this in terms of ReaderT and ExceptT because
--- we want to be able to use these transformers in applications stacks.
--- I think that I'm forced to rewrite EitherT and ReaderT here.
+-- | If you want to treat your your input data as sum (Either a b)
+-- | you have to provide morphisms to your final type.
+-- | Category instance of this types "traverses" these functions
+-- | until it finds appropriate value (error or correct value).
 newtype CoproductValidation m e a b = CoproductValidation (a → m (Either e b))
 derive instance functorCoproductValidation ∷ (Functor m) ⇒ Functor (CoproductValidation m e a)
 

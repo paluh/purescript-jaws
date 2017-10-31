@@ -162,3 +162,5 @@ main = do
         , Tuple "password2" [Just "new"]])
 
   validateAndPrint profile nicknameAndPasswordMismatch
+
+
