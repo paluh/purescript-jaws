@@ -118,7 +118,7 @@ type ProductValidation m tok i i' v v' =
    -- ⇒ (ProductChain Unit v v')
   Builder m tok (Result i v) (Result i' v'))
 
-tupleValidation ∷ ∀ a b e i l m tok v
+tupleValidation ∷ ∀ b e i m tok v
    . (Monad m)
    ⇒ (tok → m (Either e b))
    → ProductValidation m tok i (Tuple (Either e b) i) v (Tuple b v)
@@ -129,14 +129,43 @@ tupleValidation f =
   toRecord (Valid ir _) e = Invalid (Tuple e ir)
   toRecord (Invalid ir) e = Invalid (Tuple e ir)
 
-pureTupleValidation ∷ ∀ a b e i l m tok v
+pureTupleValidation ∷ ∀ b e i m tok v
    . (Monad m)
    ⇒ (tok → Either e b)
    → ProductValidation m tok i (Tuple (Either e b) i) v (Tuple b v)
 pureTupleValidation f =
   tupleValidation (f >>> pure)
 
-pureRecordFieldValidation ∷ ∀ a b e i i' l m tok v v'
+runTupleValidation ∷ ∀ i m tok v
+  . Monad m
+  ⇒ ProductValidation m tok Unit i Unit v
+  → (tok → m (Either i v))
+runTupleValidation (Builder p) =
+  (\tok → do
+    r ← p tok (Valid unit unit)
+    case r of
+      Invalid i → pure (Left i)
+      Valid _ v → pure (Right v))
+
+recordFieldValidation ∷ ∀ b e i i' l m tok v v'
+  . (IsSymbol l)
+  ⇒ (Monad m)
+  ⇒ (RowCons l (Either e b) i i')
+  ⇒ (RowCons l b v v')
+  ⇒ (RowLacks l i)
+  ⇒ (RowLacks l v)
+  ⇒ (Functor m)
+  ⇒ SProxy l
+  → (tok → m (Either e b))
+  → ProductValidation m tok (Record i) (Record i') (Record v) (Record v')
+recordFieldValidation p v =
+  Builder (\tok a → toRecord a <$> (v tok))
+ where
+ toRecord (Valid ir vr) r@(Right b) = Valid (insert p r ir) (insert p b vr)
+ toRecord (Valid ir _) e = Invalid (insert p e ir)
+ toRecord (Invalid ir) e = Invalid (insert p e ir)
+
+pureRecordFieldValidation ∷ ∀ b e i i' l m tok v v'
   . (IsSymbol l)
   ⇒ (Monad m)
   ⇒ (RowCons l (Either e b) i i')
@@ -150,25 +179,7 @@ pureRecordFieldValidation ∷ ∀ a b e i i' l m tok v v'
 pureRecordFieldValidation p v =
   recordFieldValidation p (v >>> pure)
 
-recordFieldValidation ∷ ∀ a b e i i' l m tok v v'
-  . (IsSymbol l)
-  ⇒ (Monad m)
-  ⇒ (RowCons l (Either e b) i i')
-  ⇒ (RowCons l b v v')
-  ⇒ (RowLacks l i)
-  ⇒ (RowLacks l v)
-  ⇒ (Functor m)
-  ⇒ SProxy l
-  → (tok → m (Either e b))
-  → ProductValidation m tok (Record i) (Record i') (Record v) (Record v')
-recordFieldValidation p v =
-  Builder (\tok p → toRecord p <$> (v tok))
- where
- toRecord (Valid ir vr) r@(Right b) = Valid (insert p r ir) (insert p b vr)
- toRecord (Valid ir _) e = Invalid (insert p e ir)
- toRecord (Invalid ir) e = Invalid (insert p e ir)
-
-runRecordValidation ∷ ∀ a e i i' m n n' tok v v'
+runRecordValidation ∷ ∀ i m tok v
   . Monad m
   ⇒ ProductValidation m tok {} (Record i) {} (Record v)
   → (tok → m (Either (Record i) (Record v)))
