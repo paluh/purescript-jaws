@@ -314,26 +314,26 @@ TODO
 
 ### Coproducts
 
-This library is build upon idea that "validation" is transformation. It transforms your input data into your internal choosen representation. So basic validation step
+This library is build upon idea that "validation" is transformation. It transforms your input data into your internal representation. So basic validation step
 
   ```purescript
-    input → Either error value
+    input → Either e a
   ```
 
-can be seen as transformation of input into sum type which you have chosen. In other words you are seening your data as
+can be seen as transformation of input into sum type. In other words this function allows you to see incoming data as
 
-  * either correct value
+  * one of correct values of type `value`
 
-  * or one of error type values
+  * or one of error values of type `e`
 
-So this validation:
+For exampele - this validation:
 
   ```purescript
     data Error = Failure1 | Failure2 | Failure3
     data MyType = Value1 | Value2
     input → Either Error MyType
   ```
-can be understood as trasformation of input data into possible five values (`Failure1`, `Failure2`, `Failure3`, `Value1`, `Value2`).
+can be understood as trasformation of input data into possible five values (`Left Failure1`, `Left Failure2`, `Left Failure3`, `Right Value1`, `Right Value2`).
 
 ### Products
 
@@ -356,11 +356,9 @@ TODO
 
   * Use `Data.Record.Builder` internally
 
+  * Provide more basic validators for http
+
   * Is there any nice general representation for "product" builder which can be used for Tuple, Record, HStack?
 
-  * Test `HStack` as an alternative for records
-
-  * How to do tagging in more principled way
-
-  * Provide more basic validators for http
+  * How to do tagging in more principled way? How to return list of error paths?
 
