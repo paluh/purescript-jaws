@@ -1,6 +1,6 @@
 # purescript-jaws
 
-"Two dimentional" composable validation toolkit. Still in α-stage.
+"Two dimentional", semigroupoid based composable validation toolkit. Still in α-stage.
 
 ## Usage
 
@@ -309,10 +309,44 @@ TODO: more docs soon...
 
 TODO
 
-## Show me the types
+## Design
+
+### Philosophy
 
 TODO
 
+### Coproducts
+
+This library is build upon idea that "validation" is transformation. It transforms your input data into your internal choosen representation. So basic validation step
+
+  ```purescript
+    input → Either error value
+  ```
+
+can be seen as transformation of input into sum type which you have chosen. In other words you are seening your data as
+
+  * either correct value
+
+  * or one of error type values
+
+So this validation:
+
+  ```purescript
+    data Error = Failure1 | Failure2 | Failure3
+    data MyType = Value1 | Value2
+    input → Either Error MyType
+  ```
+can be understood as trasformation of input data into possible five values (`Failure1`, `Failure2`, `Failure3`, `Value1`, `Value2`).
+
+### Products
+
+But what if you want to see your data not as sum of values but as product?
+
+TODO
+
+### Implementation
+
+TODO
 
 ## Conventions
 

@@ -16,9 +16,10 @@ import Data.StrMap (StrMap, empty, fromFoldable, lookup)
 import Data.String (Pattern(..), contains)
 import Data.Symbol (SProxy(SProxy))
 import Data.Tuple (Tuple(..))
+import Data.Validation.Jaws (addField, buildRecord)
+import Data.Validation.Jaws.Coproduct (CoproductValidation, check, check', pureV, pureV', runCoproductValidation, tag)
 import Data.Validation.Jaws.Http (Query, addFieldFromQuery, catMaybesV, int, int', nonEmptyArray, nonEmptyArray', nonEmptyString, optional, scalar, scalar')
-import Data.Validation.Jaws.Record (addField, buildRecord, buildRecord', combine)
-import Data.Validation.Jaws.Validation (Validation, check, check', pureV, pureV', runValidation, tag)
+import Data.Validation.Jaws.Product (recordFieldValidation)
 import Data.Variant (Variant, on, case_)
 import Debug.Trace (traceAnyA)
 
@@ -44,9 +45,9 @@ instance showRegistration ∷ Show Registration where
   show = genericShow
 
 -- This is how we create validation
--- All Validation constructors which have ampersand at the end
+-- All CoproductValidation constructors which have ampersand at the end
 -- are taking symbol as and wraps error in Variant
-email' ∷ ∀ m v. (Monad m) ⇒ Validation m (Variant (email ∷ String | v)) String  Email
+email' ∷ ∀ m v. (Monad m) ⇒ CoproductValidation m (Variant (email ∷ String | v)) String  Email
 email' = check' (SProxy ∷ SProxy "email") (contains (Pattern "@")) >>> pureV (Email >>> Right)
 
 passwordFields =
@@ -62,7 +63,7 @@ password =
   (tag (SProxy ∷ SProxy "fields") passwordFields) >>>
   (tag (SProxy ∷ SProxy "equals") (passwordsEqual >>> createPassword))
 
-registration :: forall m. Monad m => Validation m _ Query Registration
+registration :: forall m. Monad m => CoproductValidation m _ Query Registration
 registration =
   Registration <$>
     (buildRecord
@@ -82,7 +83,7 @@ instance showProfile ∷ Show Profile where
   show = genericShow
 
 
--- missingValue :: ∀ a m. (Monad m) ⇒ String → Validation m Unit Query Query
+-- missingValue :: ∀ a m. (Monad m) ⇒ String → CoproductValidation m Unit Query Query
 missingValue p = check (\query → case lookup p query of
    Nothing → true
    (Just [Nothing]) → true
@@ -94,7 +95,7 @@ emptyPasswords =
 
 emptyPasswords' = tag (SProxy ∷ SProxy "empty") emptyPasswords
 
--- profile :: forall a e m. Monad m => Validation m e a _
+-- profile :: forall a e m. Monad m => CoproductValidation m e a _
 profile =
   Profile <$>
     (buildRecord
@@ -103,11 +104,11 @@ profile =
        addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
        addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
 
-validateAndPrint ∷ ∀ a e i eff m r. (Show i) ⇒ (Show r) ⇒ Validation (Eff (console ∷ CONSOLE | eff)) e i r → i → Eff (console ∷ CONSOLE | eff) Unit
+validateAndPrint ∷ ∀ a e i eff m r. (Show i) ⇒ (Show r) ⇒ CoproductValidation (Eff (console ∷ CONSOLE | eff)) e i r → i → Eff (console ∷ CONSOLE | eff) Unit
 validateAndPrint v d = do
   log ("Validating :" <> show d)
 
-  r ←  runValidation v d
+  r ←  runCoproductValidation v d
   case r of
     Right v → logShow (Right v ∷ Either Unit r)
     e → traceAnyA e
