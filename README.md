@@ -11,9 +11,6 @@ Let's build password form.
 User should provide non empty password twice...
 
   ```purescript
-    import Data.Validation.Jaws.Record (addFieldQuery, buildRecord)
-    import Data.Validation.Jaws.Validation (check, pureV, tag)
-
     passwordFields =
       buildRecord
        (addFieldFromQuery (SProxy ∷ SProxy "password1") nonEmptyString >>>
@@ -39,7 +36,7 @@ Let's combine these steps together and check them in action:
 
   ```
 
-When you see `SProxy :: SProxy label` you can think of a labeling validation step. Labeling steps is necessary in case of "sum validation" - where validation is chained one after another. It's basically `a -> Either e b` chain where every `e` can and should be labeled (thanks to `purescript-variant`!) to form single coproduct type.
+When you see `SProxy :: SProxy label` you can think of a labeling validation step. Labeling steps is necessary in case of "sum validation" - where validation is chained one after another. It's basically `a -> Either e b` chain where every `e` can and should be labeled to form single coproduct type.
 
 On the other hand we have also products/records build up steps. This kind of validation steps aggregates all results into product (through `addField` or dedicated query helper `addFieldFromQuery`). In this context labeling is just giving record field a name. Resulting product value would contain all valid, but also invalid values (values wrapped in `Either`), but if the whole validation processes passes you would get record without any additional wrapping!
 
