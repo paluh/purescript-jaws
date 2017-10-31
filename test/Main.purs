@@ -6,6 +6,7 @@ import Control.Alternative ((<|>))
 import Control.Error.Util (note)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log, logShow)
+import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -17,9 +18,10 @@ import Data.String (Pattern(..), contains)
 import Data.Symbol (SProxy(SProxy))
 import Data.Tuple (Tuple(..))
 import Data.Validation.Jaws (addField, buildRecord)
-import Data.Validation.Jaws.Coproduct (CoproductValidation, check, check', pureV, pureV', runCoproductValidation, tag)
+import Data.Validation.Jaws.Coproduct (CoproductValidation(..), check, check', pureV, pureV', runCoproductValidation, tag)
 import Data.Validation.Jaws.Http (Query, addFieldFromQuery, catMaybesV, int, int', nonEmptyArray, nonEmptyArray', nonEmptyString, optional, scalar, scalar')
 import Data.Validation.Jaws.Product (recordFieldValidation)
+import Data.Validation.Semigroup (V, invalid)
 import Data.Variant (Variant, on, case_)
 import Debug.Trace (traceAnyA)
 
@@ -47,7 +49,7 @@ instance showRegistration ∷ Show Registration where
 -- This is how we create validation
 -- All CoproductValidation constructors which have ampersand at the end
 -- are taking symbol as and wraps error in Variant
-email' ∷ ∀ m v. (Monad m) ⇒ CoproductValidation m (Variant (email ∷ String | v)) String  Email
+email' ∷ ∀ m v. (Monad m) ⇒ CoproductValidation m Either (Variant (email ∷ String | v)) String  Email
 email' = check' (SProxy ∷ SProxy "email") (contains (Pattern "@")) >>> pureV (Email >>> Right)
 
 passwordFields =
@@ -55,6 +57,7 @@ passwordFields =
     (addFieldFromQuery (SProxy ∷ SProxy "password1") nonEmptyString >>>
      addFieldFromQuery (SProxy ∷ SProxy "password2") nonEmptyString)
 
+passwordsEqual ∷ ∀ e m s t1. (Monad m) ⇒ CoproductValidation m Either {password1 ∷ String, password2 ∷ String}  _ _
 passwordsEqual = check (\r → r.password1 == r.password2)
 
 createPassword = pureV (_.password1 >>> Password >>> Right)
@@ -63,7 +66,7 @@ password =
   (tag (SProxy ∷ SProxy "fields") passwordFields) >>>
   (tag (SProxy ∷ SProxy "equals") (passwordsEqual >>> createPassword))
 
-registration :: forall m. Monad m => CoproductValidation m _ Query Registration
+registration :: forall m. Monad m => CoproductValidation m Either _ Query Registration
 registration =
   Registration <$>
     (buildRecord
@@ -84,6 +87,7 @@ instance showProfile ∷ Show Profile where
 
 
 -- missingValue :: ∀ a m. (Monad m) ⇒ String → CoproductValidation m Unit Query Query
+missingValue ∷ ∀ e m s t1. (Monad m) ⇒ String → CoproductValidation m Either Query Query Query
 missingValue p = check (\query → case lookup p query of
    Nothing → true
    (Just [Nothing]) → true
@@ -104,7 +108,7 @@ profile =
        addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
        addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
 
-validateAndPrint ∷ ∀ a e i eff m r. (Show i) ⇒ (Show r) ⇒ CoproductValidation (Eff (console ∷ CONSOLE | eff)) e i r → i → Eff (console ∷ CONSOLE | eff) Unit
+validateAndPrint ∷ ∀ a e i eff m r. (Show i) ⇒ (Show r) ⇒ CoproductValidation (Eff (console ∷ CONSOLE | eff)) Either e i r → i → Eff (console ∷ CONSOLE | eff) Unit
 validateAndPrint v d = do
   log ("Validating :" <> show d)
 
@@ -113,6 +117,33 @@ validateAndPrint v d = do
     Right v → logShow (Right v ∷ Either Unit r)
     e → traceAnyA e
   log "\n"
+
+
+-- V from purescript-validation which `monoidal` applicative aggregation of errors
+-- toValidation ∷ ∀ a e. (Semigroup e) ⇒ Either e a → V e a
+-- toValidation (Left e) = invalid e
+-- toValidation (Right a) = pure a
+-- 
+-- -- scalarStr :: forall t47 t52 t54. Functor t54 => Monad t54 => CoproductValidation t54 Either (Array (Either t52 t47)) (Array (Either t52 t47)) (V String t47)
+-- scalarStr = (((toValidation <<< lmap (const "expecting single value"))) <$> scalar)
+
+
+-- profile =
+--   Profile <$>
+--     ({ password: _
+--      , bio: _
+--      , age: _
+--      , nickname } <$>
+--       (catMaybesV >>> (lmap (const "scalar") scalar)))
+
+--      (addField (SProxy ∷ SProxy "password") (emptyPasswords' <|> (Just <$> password)) >>>
+--       addFieldFromQuery (SProxy ∷ SProxy "bio") (scalar <|> pure Nothing) >>>
+--       addFieldFromQuery (SProxy ∷ SProxy "age") (catMaybesV >>> optional int') >>>
+--       addFieldFromQuery (SProxy ∷ SProxy "nickname") (Nickname <$> nonEmptyString)))
+
+--      (scalar <|> pure Nothing) >>>
+--      (catMaybesV >>> optional int') >>>
+--      (Nickname <$> nonEmptyString)))
 
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do

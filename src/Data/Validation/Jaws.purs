@@ -17,7 +17,7 @@ addField ∷ ∀ b e i i' l m tok v v'
   ⇒ (RowLacks l v)
   ⇒ (Functor m)
   ⇒ SProxy l
-  → CoproductValidation m e tok b
+  → CoproductValidation m Either e tok b
   → ProductValidation m tok (Record i) (Record i') (Record v) (Record v')
 addField p v =
   recordFieldValidation p (runCoproductValidation v)
@@ -25,7 +25,7 @@ addField p v =
 buildRecord ∷ ∀ i m v tok
   . Monad m
   ⇒ ProductValidation m tok {} (Record i) {} (Record v)
-  → CoproductValidation m (Record i) tok (Record v)
+  → CoproductValidation m Either (Record i) tok (Record v)
 buildRecord = runRecordValidation >>> CoproductValidation
 
 buildRecord' ∷ ∀ i l m v r r' tok
@@ -34,5 +34,5 @@ buildRecord' ∷ ∀ i l m v r r' tok
   ⇒ RowCons l (Record i) r r'
   ⇒ SProxy l
   → ProductValidation m tok {} (Record i) {} (Record v)
-  → CoproductValidation m (Variant r') tok (Record v)
+  → CoproductValidation m Either (Variant r') tok (Record v)
 buildRecord' p = buildRecord >>> tag p
