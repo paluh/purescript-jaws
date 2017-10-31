@@ -6,7 +6,7 @@
 
 ### Simple validation
 
-Let's build password form.
+Let's build update/create password component.
 
 User should provide non empty password twice...
 
