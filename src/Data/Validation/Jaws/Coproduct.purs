@@ -5,8 +5,10 @@ import Prelude
 import Control.Alt (class Alt)
 import Data.Either (Either(Left, Right))
 import Data.EitherR (fmapL)
+import Data.Newtype (class Newtype, unwrap)
 import Data.Profunctor (class Profunctor)
 import Data.Profunctor.Choice (class Choice)
+import Data.Profunctor.Star (Star(..))
 import Data.Profunctor.Strong (class Strong)
 import Data.Symbol (class IsSymbol, SProxy)
 import Data.Tuple (Tuple(..))
@@ -16,18 +18,19 @@ import Data.Variant (Variant, inj)
 -- | you have to provide morphisms to your final type.
 -- | Category instance of this types "traverses" these functions
 -- | until it finds appropriate value (error or correct value).
-newtype CoproductValidation m e a b = CoproductValidation (a → m (Either e b))
+newtype CoproductValidation m e a b = CoproductValidation (Star m a (Either e b))
+derive instance newtypeCoproductVaildation ∷ Newtype (CoproductValidation m e a b) _
 derive instance functorCoproductValidation ∷ (Functor m) ⇒ Functor (CoproductValidation m e a)
 
 instance bindCoproductValidation ∷ (Monad m) ⇒ Bind (CoproductValidation m e a) where
   bind (CoproductValidation v) f =
-    CoproductValidation (\a → do
-      r ← v a
+    CoproductValidation <<< Star $ (\a → do
+      r ← unwrap v a
       case r of
         Left e → pure $ Left e
         Right u →
           let CoproductValidation v' = f u
-          in v' a)
+          in unwrap v' a)
 
 instance applyCoproductValidation ∷ (Monad m) ⇒ Apply (CoproductValidation m e a) where
   apply vf va = do
@@ -36,16 +39,16 @@ instance applyCoproductValidation ∷ (Monad m) ⇒ Apply (CoproductValidation m
     pure (f a)
 
 instance applicativeCoproductValidation ∷ (Monad m) ⇒ Applicative (CoproductValidation m e a) where
-  pure v = CoproductValidation (\a → pure (Right v))
+  pure v = CoproductValidation <<< Star $ (\a → pure (Right v))
 
 instance monadCoproductValidation ∷ (Monad m) ⇒ Monad (CoproductValidation m e a)
 
 runCoproductValidation ∷ ∀ a b e m. CoproductValidation m e a b → a → m (Either e b)
-runCoproductValidation (CoproductValidation v) = v
+runCoproductValidation (CoproductValidation v) = unwrap v
 
 -- XXX: Should we sum errors and... force evaluation of all validators?
 instance altCoproductValidation ∷ (Monad m) ⇒ Alt (CoproductValidation m e a) where
-  alt v1 v2 = CoproductValidation (\a → do
+  alt v1 v2 = CoproductValidation <<< Star $ (\a → do
     eb <- runCoproductValidation v1 a
     case eb of
       r@(Right b) → pure r
@@ -53,46 +56,46 @@ instance altCoproductValidation ∷ (Monad m) ⇒ Alt (CoproductValidation m e a
 
 instance semigroupoidCoproductValidation ∷ (Monad m) ⇒ Semigroupoid (CoproductValidation m e) where
   compose (CoproductValidation v2) (CoproductValidation v1) =
-    CoproductValidation (\a → do
-      eb ← v1 a
+    CoproductValidation <<< Star $ (\a → do
+      eb ← unwrap v1 a
       case eb of
-        Right b → v2 b
+        Right b → unwrap v2 b
         Left e → pure (Left e))
 
 instance categoryCoproductValidation ∷ (Monad m) ⇒ Category (CoproductValidation m e) where
-  id = CoproductValidation (pure <<< Right)
+  id = CoproductValidation <<< Star $ (pure <<< Right)
 
 instance profunctorCoproductValidation ∷ (Monad m) ⇒ Profunctor (CoproductValidation m e) where
   dimap f g (CoproductValidation v) =
-    -- we have to map over `Either`
-    CoproductValidation $ (f >>> pure) >=> v >=> (map g >>> pure)
+    -- we have to work over `Either e` not over whole `Either e a`
+    CoproductValidation <<< Star $ (f >>> pure) >=> unwrap v >=> (map g >>> pure)
 
 instance choiceCoproductValidation ∷ (Monad m) ⇒ Choice (CoproductValidation m e) where
-  left (CoproductValidation v) =
-    CoproductValidation v'
+  left (CoproductValidation (Star v)) =
+    CoproductValidation <<< Star $ v'
    where
     v' (Right r) = pure (Right (Right r))
     v' (Left input) = (Left <$> _) <$> v input
-  right (CoproductValidation v) =
-    CoproductValidation v'
+  right (CoproductValidation (Star v)) =
+    CoproductValidation <<< Star $ v'
    where
     v' (Left r) = pure (Right (Left r))
     v' (Right input) = (Right <$> _) <$> (v input)
 
 instance strongCoproductValidation ∷ (Monad m) ⇒ Strong (CoproductValidation m e) where
-  first (CoproductValidation v) =
-    CoproductValidation v'
+  first (CoproductValidation (Star v)) =
+    CoproductValidation <<< Star $ v'
    where
     v' (Tuple input c) = ((flip Tuple c) <$> _) <$> (v input)
-  second (CoproductValidation v) = 
-    CoproductValidation v'
+  second (CoproductValidation (Star v)) =
+    CoproductValidation <<< Star $ v'
    where
     v' (Tuple c input) = ((Tuple c) <$> _) <$> (v input)
 
 
 -- | Beside these constructors you can also use just Applicative `pure`
 validation ∷ ∀ a b e m. (a → m (Either e b)) → CoproductValidation m e a b
-validation = CoproductValidation
+validation = CoproductValidation <<< Star
 
 validation' ∷ forall a b e m p r r'
   . RowCons p e r r'
@@ -104,7 +107,7 @@ validation' ∷ forall a b e m p r r'
 validation' l f = tag l (validation f)
 
 pureV ∷ ∀ a b e m. (Monad m) ⇒ (a → Either e b) → CoproductValidation m e a b
-pureV f = CoproductValidation (f >>> pure)
+pureV f = CoproductValidation <<< Star $ (pure <<< f)
 
 pureV' ∷ forall a b e m p r r'
   . RowCons p e r r'
@@ -116,7 +119,7 @@ pureV' ∷ forall a b e m p r r'
 pureV' l f = tag l (pureV f)
 
 fail ∷ ∀ a b e m. (Monad m) ⇒ e → CoproductValidation m e a b
-fail = CoproductValidation <<< const <<< pure <<< Left
+fail = CoproductValidation <<< Star <<< const <<< pure <<< Left
 
 fail' ∷ ∀ a b e m p r r'
   . RowCons p e r r'
@@ -125,7 +128,7 @@ fail' ∷ ∀ a b e m p r r'
   ⇒ SProxy p
   → e
   → CoproductValidation m (Variant r') a b
-fail' p = tag p <<< CoproductValidation <<< const <<< pure <<< Left
+fail' p = tag p <<< CoproductValidation <<< Star <<< const <<< pure <<< Left
 
 tag :: forall a b e m p r r'
   . RowCons p e r r'
@@ -134,8 +137,8 @@ tag :: forall a b e m p r r'
   ⇒ SProxy p
   → CoproductValidation m e a b
   → CoproductValidation m (Variant r') a b
-tag p (CoproductValidation v) =
-  CoproductValidation ((fmapL (inj p) <$> _) <$> v)
+tag p (CoproductValidation (Star v)) =
+  CoproductValidation <<< Star $ ((fmapL (inj p) <$> _) <$> v)
 
 check :: forall a m
   . (Monad m)

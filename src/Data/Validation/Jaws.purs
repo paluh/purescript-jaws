@@ -3,6 +3,7 @@ module Data.Validation.Jaws where
 import Prelude
 
 import Data.Either (Either)
+import Data.Profunctor.Star (Star(..))
 import Data.Validation.Jaws.Coproduct (CoproductValidation(..), runCoproductValidation, tag)
 import Data.Validation.Jaws.Product (ProductValidation, recordFieldValidation, runRecordValidation)
 import Data.Variant (Variant)
@@ -26,7 +27,7 @@ buildRecord ∷ ∀ i m v tok
   . Monad m
   ⇒ ProductValidation m tok {} (Record i) {} (Record v)
   → CoproductValidation m (Record i) tok (Record v)
-buildRecord = runRecordValidation >>> CoproductValidation
+buildRecord = runRecordValidation >>> Star >>> CoproductValidation
 
 buildRecord' ∷ ∀ i l m v r r' tok
   . Monad m
