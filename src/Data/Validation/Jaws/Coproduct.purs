@@ -14,10 +14,6 @@ import Data.Symbol (class IsSymbol, SProxy)
 import Data.Tuple (Tuple(..))
 import Data.Variant (Variant, inj)
 
--- | If you want to treat your your input data as sum (Either a b)
--- | you have to provide morphisms to your final type.
--- | Category instance of this types "traverses" these functions
--- | until it finds appropriate value (error or correct value).
 newtype CoproductValidation m e a b = CoproductValidation (Star m a (Either e b))
 derive instance newtypeCoproductVaildation ∷ Newtype (CoproductValidation m e a b) _
 derive instance functorCoproductValidation ∷ (Functor m) ⇒ Functor (CoproductValidation m e a)

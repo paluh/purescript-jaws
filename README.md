@@ -1,6 +1,8 @@
 # purescript-jaws
 
-"Two dimentional", semigroupoid based composable validation toolkit. Still in α-stage.
+"Two dimentional", semigroupoid based, composable validation toolkit.
+
+Still in α-stage.
 
 ## Usage
 
@@ -144,7 +146,8 @@ And like previously if we provide correct input we are going to get just plain v
           [ Tuple "password1" [Just "pass"]
           , Tuple "password2" [Just "pass"]
           , Tuple "email" [Just "email@example.com"]
-          , Tuple "nickname" [Just "nick"]])
+          , Tuple "nickname" [Just "nick"]
+          ])
 
     validateAndPrint registration correctData
   ```
@@ -162,7 +165,8 @@ but in case of invalid input...
         [ Tuple "password1" [Just "wrong"]
         , Tuple "password2" [Just "pass"]
         , Tuple "email" [Just "email@example.com"]
-        , Tuple "nickname" [Just "nick"]])
+        , Tuple "nickname" [Just "nick"]
+        ])
 
     validateAndPrint registration passwordMismatch
   ```
@@ -264,7 +268,8 @@ TODO: more docs soon...
       (fromFoldable
         [ Tuple "nickname" [Just "nick"]
         , Tuple "password1" [Just "new"]
-        , Tuple "password2" [Just "new"]])
+        , Tuple "password2" [Just "new"]
+        ])
   ```
 
   ```purescript
@@ -282,7 +287,8 @@ TODO: more docs soon...
       (fromFoldable
         [ Tuple "nickname" [Just "nick"]
         , Tuple "password1" [Just "wrong"]
-        , Tuple "password2" [Just "new"]])
+        , Tuple "password2" [Just "new"]
+        ])
 
   validateAndPrint profile nicknameAndPasswordMismatch
   ```

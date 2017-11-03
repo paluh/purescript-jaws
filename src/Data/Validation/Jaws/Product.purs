@@ -10,8 +10,6 @@ import Data.Profunctor.Strong (class Strong)
 import Data.Record (insert)
 import Data.Symbol (SProxy)
 import Data.Tuple (Tuple(..))
--- import Data.Validation.Jaws.Record (RecordBuilder)
--- import Data.Validation.Jaws.Validation (Validation(..), runValidation, tag)
 import Type.Prelude (class IsSymbol, class RowLacks)
 
 -- | This is really general type which is specialized below.
@@ -98,17 +96,34 @@ instance bifunctorResult ∷ Bifunctor Result where
 
 
 -- XXX: Fix this constraint and use them in product validation
--- class ProductChain a v v' | a v → v', v' v → a
+
+-- data Chain v v' = Chain
+--
+-- class ProductChain v v' | v → v' where
+--   r ∷ Chain v v'
+--
+-- instance _aaU ∷ ProductChain r r where
+--   r = Chain
+--
+-- instance _atpR ∷ (ProductChain b v) ⇒ ProductChain b (Tuple a v) where
+--   r = Chain
+--
+-- -- This is forbidden...
+-- instance _brProductChainRecordRec
+--   ∷ ProductChain (Record ()) (Record v) where
+--   r = Chain
+--
+-- -- This doesn't solve anything
+-- instance _brProductChainRecordRec
+--   ∷ ProductChain (Record v) (Record v) where
+--   r = Chain
+--
+-- instance _crProductChainRecordRec
+--   ∷ (IsSymbol l, RowCons l a v' v, ProductChain (Record b) (Record v')) ⇒ ProductChain (Record b) (Record v) where
+--   r = Chain
 -- 
--- instance _aProductChainTupleUnitUnit ∷ ProductChain Unit Unit Unit
--- 
--- instance _bProductChainTupleUnit ∷ (ProductChain v' Unit v') ⇒ ProductChain Unit (Tuple v v') (Tuple v v')
--- instance _cProductChainTupleRec ∷ (ProductChain v v' v'') ⇒ ProductChain (Tuple a v) v' (Tuple a v'')
--- 
--- instance _aProductChainRecordUnit ∷ ProductChain Unit (Record v) (Record v)
--- instance _bProductChainRecordRec
---   ∷ (IsSymbol l, RowCons l a br r, RowCons l a v' v'', ProductChain (Record br) (Record v) (Record v'))
---   ⇒ ProductChain (Record r) (Record v) (Record v'')
+-- p = r ∷ (Chain {a :: Int, b :: Unit} { c ∷ String, a ∷  Int, b ∷ Unit})
+
 
 type ProductValidation m tok i i' v v' =
   (-- (ProductChain Unit i i')
