@@ -17,8 +17,10 @@ import Type.Prelude (class IsSymbol, class RowLacks, SProxy(..), reflectSymbol)
 
 --  This is just a playground for a HTTP validation
 --  In http query every key can be repeated
---  and can have form:
---  ?key ~ (Nothing) or ?key= ~ (Just "") or ?key=v1 ~ (Just "v1")
+--  and can have form :
+--    * ?key ~ (Nothing)
+--    * ?key= ~ (Just "")
+--    * ?key=v1 ~ (Just "v1")
 type QueryField = Array (Maybe String)
 type Query = StrMap (Array (Maybe String))
 

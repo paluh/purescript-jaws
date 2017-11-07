@@ -19,6 +19,7 @@ import Data.Tuple (Tuple(..))
 import Data.Validation.Jaws (addField, buildRecord)
 import Data.Validation.Jaws.Coproduct (CoproductValidation, check, check', pureV, pureV', runCoproductValidation, tag)
 import Data.Validation.Jaws.Http (Query, addFieldFromQuery, catMaybesV, int, int', nonEmptyArray, nonEmptyArray', nonEmptyString, optional, scalar, scalar')
+import Data.Validation.Jaws.Http.Form (y)
 import Data.Validation.Jaws.Product (recordFieldValidation)
 import Data.Variant (Variant, on, case_)
 import Debug.Trace (traceAnyA)
@@ -114,6 +115,13 @@ validateAndPrint v d = do
     e → traceAnyA e
   log "\n"
 
+
+
+passwordFieldsWithPath =
+  buildRecord
+    (addFieldFromQuery (SProxy ∷ SProxy "password1") nonEmptyString >>>
+     addFieldFromQuery (SProxy ∷ SProxy "password2") nonEmptyString)
+
 main :: forall e. Eff (console :: CONSOLE | e) Unit
 main = do
   validateAndPrint password empty
@@ -163,4 +171,5 @@ main = do
 
   validateAndPrint profile nicknameAndPasswordMismatch
 
+  logShow (y {password: "test", age: 8, bio: "my life is a mistake"})
 

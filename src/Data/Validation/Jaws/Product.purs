@@ -31,6 +31,7 @@ instance applyBuilder ∷ (Monad m) ⇒ Apply (Builder m tok a) where
 instance applicativeBuilder ∷ (Monad m) ⇒ Applicative (Builder m tok a) where
   pure = Builder <<< const <<< const <<< pure
 
+-- | This is just a Reader over `Tuple tok a`
 instance bindBuilder ∷ (Monad m) ⇒ Bind (Builder m tok a) where
   bind (Builder v) f =
     Builder v'
@@ -113,7 +114,7 @@ instance bifunctorResult ∷ Bifunctor Result where
 --   ∷ ProductChain (Record ()) (Record v) where
 --   r = Chain
 --
--- -- This doesn't solve anything
+-- -- This doesn't solve anything - I'm not sure why...
 -- instance _brProductChainRecordRec
 --   ∷ ProductChain (Record v) (Record v) where
 --   r = Chain

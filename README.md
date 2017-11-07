@@ -367,7 +367,5 @@ TODO
 
   * Provide more basic validators for http
 
-  * Is there any nice general representation for "product" builder which can be used for Tuple, Record, HStack?
-
   * How to do tagging in more principled way? How to return list of error paths?
 
