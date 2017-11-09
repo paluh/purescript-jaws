@@ -7,6 +7,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe, fromMaybe)
 import Data.Monoid (class Monoid, mempty)
+import Data.Op (Op(..))
 import Data.Profunctor.Star (Star(..))
 import Data.Record (get, insert)
 import Data.StrMap (lookup)
@@ -24,69 +25,26 @@ data FormValue a = Err String String | Val a
 derive instance genericFormValue ∷ Generic (FormValue a) _
 instance showFormValue ∷ (Show a) ⇒ Show (FormValue a) where show = genericShow
 
--- | This idea has been stolen from haskell `Turtle.Format`
-data FormBuilder a b = FormBuilder ((Form → a) → b)
+type FormInit a = a → Form
 
-runFormBuilder (FormBuilder f) = f
+inputFromRecord p =
+  (\r → Form [] [ Input {  label: reflectSymbol p, name: reflectSymbol p, value: Val (get p r) }])
+numberFromRecord p =
+  (\r → Form [] [ Number {  label: reflectSymbol p, name: reflectSymbol p, value: Val (get p r) }])
 
-instance semigroupoidFormBuilder ∷ Semigroupoid FormBuilder where
-  compose (FormBuilder f2) (FormBuilder f1) = FormBuilder
-    (\form2a →
-        f2 (\form2 →
-           f1 (\form1 →
-              form2a (form1 <> form2))))
 
--- addInput :: forall t279 t285 t286 t287. IsSymbol t285 => RowCons t285 String t286 t287 => SProxy t285 -> FormBuilder { | t287 } t279 Field
-addInput :: forall t287 t288 t289 t290. IsSymbol t287 => RowCons t287 String t288 t289 => SProxy t287 -> FormBuilder ({ | t289 } -> t290) ({ | t289 } -> t290)
-addInput p =
-  FormBuilder (\f2a → \r → (f2a (Form [] [ Input {  label: reflectSymbol p, name: reflectSymbol p, value: Val (get p r)} ]) r))
-addNumber p =
-  FormBuilder (\f2a → \r → (f2a (Form [] [ Number {  label: reflectSymbol p, name: reflectSymbol p, value: Val (get p r)} ]) r))
+x :: String -> Form
+x = (\p → {password1: p, password2: p}) >>> (inputFromRecord (SProxy ∷ SProxy "password1") <> (inputFromRecord (SProxy ∷ SProxy "password2")))
 
-x :: forall t294 t304.
-   FormBuilder
-     ({ password1 :: String
-      , password2 :: String
-      | t304
-      }
-      -> t294
-     )
-     ({ password1 :: String
-      , password2 :: String
-      | t304
-      }
-      -> t294
-     )
-x = addInput (SProxy ∷ SProxy "password1") >>> (addInput (SProxy ∷ SProxy "password2"))
 
-split :: forall t4 t5 t8.
-   FormBuilder
-     ({ password1 :: t4
-      , password2 :: t4
-      }
-      -> t8
-     )
-     ({ password :: t4
-      | t5
-      }
-      -> t8
-     )
-split =
-  FormBuilder (\fr2a → \r → (fr2a (Form [] []) {password1: r.password, password2: r.password}))
-
-y :: forall t356.
+y :: forall t265.
    { password :: String
    , bio :: String
-   , age :: Int
-   | t356
+   , age :: String
+   | t265
    }
    -> Form
-y = runFormBuilder (addInput (SProxy ∷ SProxy "bio") <<< addNumber (SProxy ∷ SProxy "age") <<< (split <<< x)) (\f _ → f)
-
--- z :: Form
--- z = runFormBuilder (split <<< x) (\f _ → f) {password: "TEST"}
-
--- x = runFormBuilder (addInput (SProxy ∷ SProxy "password1") >>> (addInput (SProxy ∷ SProxy "password2"))) (\f _ → f) {password1: "test", password2: "fest"}
+y = inputFromRecord (SProxy ∷ SProxy "bio") <> inputFromRecord (SProxy ∷ SProxy "age") <> (_.password >>> x)
 
 data Field
   = Input { label ∷ String, name ∷ String, value ∷ FormValue String }

@@ -203,3 +203,4 @@ runRecordValidation (Builder p) =
       Invalid i → pure (Left i)
       Valid _ v → pure (Right v))
 
+
