@@ -10,7 +10,9 @@ import Data.Profunctor.Strong (class Strong)
 import Data.Record (insert)
 import Data.Symbol (SProxy)
 import Data.Tuple (Tuple(..))
-import Type.Prelude (class IsSymbol, class RowLacks)
+import Data.Tuple.Nested (type (/\))
+import Type.Prelude (class IsSymbol, class RowLacks, class RowToList)
+import Type.Row (Cons, Nil)
 
 -- | This is really general type which is specialized below.
 -- | I'm thinking of it here as a builder which extracts/validates
@@ -96,34 +98,34 @@ instance bifunctorResult ∷ Bifunctor Result where
   bimap g f r = map f (mapI g r)
 
 
--- XXX: Fix this constraint and use them in product validation
-
+-- -- | XXX: Fix this constraint and use them in product validation
+-- -- | It should express that v is a "suffix" of v
 -- data Chain v v' = Chain
---
--- class ProductChain v v' | v → v' where
+-- 
+-- class ProductChain v v' where
 --   r ∷ Chain v v'
---
+-- 
 -- instance _aaU ∷ ProductChain r r where
 --   r = Chain
---
+-- 
 -- instance _atpR ∷ (ProductChain b v) ⇒ ProductChain b (Tuple a v) where
 --   r = Chain
---
--- -- This is forbidden...
--- instance _brProductChainRecordRec
---   ∷ ProductChain (Record ()) (Record v) where
---   r = Chain
---
--- -- This doesn't solve anything - I'm not sure why...
+-- 
+-- 
+-- -- this works well for tuples
+-- ct = r ∷ (Chain (Int /\ Unit) (String /\ Int /\ Unit))
+-- 
 -- instance _brProductChainRecordRec
 --   ∷ ProductChain (Record v) (Record v) where
 --   r = Chain
---
+-- 
 -- instance _crProductChainRecordRec
 --   ∷ (IsSymbol l, RowCons l a v' v, ProductChain (Record b) (Record v')) ⇒ ProductChain (Record b) (Record v) where
 --   r = Chain
 -- 
--- p = r ∷ (Chain {a :: Int, b :: Unit} { c ∷ String, a ∷  Int, b ∷ Unit})
+-- -- | I'm getting: "Type class instance for Data.Symbol.IsSymbol t1 is possibly infinite"
+-- -- | and I'm not sure how to solve this
+-- cr = r ∷ (Chain {a :: Int, b :: Unit} { c ∷ String, a ∷  Int, b ∷ Unit})
 
 
 type ProductValidation m tok i i' v v' =

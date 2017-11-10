@@ -3,6 +3,7 @@ module Data.Validation.Jaws.Coproduct where
 import Prelude
 
 import Control.Alt (class Alt)
+import Data.Bifunctor (class Bifunctor, bimap)
 import Data.Either (Either(Left, Right))
 import Data.EitherR (fmapL)
 import Data.Newtype (class Newtype, unwrap)
@@ -87,6 +88,12 @@ instance strongCoproductValidation ∷ (Monad m) ⇒ Strong (CoproductValidation
     CoproductValidation <<< Star $ v'
    where
     v' (Tuple c input) = ((Tuple c) <$> _) <$> (v input)
+
+newtype CVBifunctor m a e b = CVBifunctor (CoproductValidation m e a b)
+derive instance newtypeCVBifunctor ∷ Newtype (CVBifunctor m a e b) _
+
+instance bifunctorCoproductValidation ∷ (Monad m) ⇒ Bifunctor (CVBifunctor m a) where
+  bimap f g (CVBifunctor (CoproductValidation (Star c))) = CVBifunctor <<< CoproductValidation <<< Star $ ((bimap f g <$> _) <$> c)
 
 
 -- | Beside these constructors you can also use just Applicative `pure`

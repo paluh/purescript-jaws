@@ -2,71 +2,27 @@ module Data.Validation.Jaws.Http.Form where
 
 import Prelude
 
-import Data.Either (Either(..))
+import Control.Alt ((<|>))
+import Data.Bifunctor (bimap)
+import Data.Either (Either(..), either)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe, fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Monoid (class Monoid, mempty)
+import Data.Newtype (unwrap)
 import Data.Op (Op(..))
 import Data.Profunctor.Star (Star(..))
 import Data.Record (get, insert)
 import Data.StrMap (lookup)
 import Data.Tuple (Tuple(..))
-import Data.Validation.Jaws.Coproduct (CoproductValidation(..), runCoproductValidation)
-import Data.Validation.Jaws.Http (Query, QueryField, addFieldFromQuery, int, int', nonEmptyString)
+import Data.Validation.Jaws.Coproduct (CVBifunctor(..), CoproductValidation(..), check, check', pureV', runCoproductValidation)
+import Data.Validation.Jaws.Http (Query, QueryField, addFieldFromQuery, int, int', nonEmptyString, scalar, scalar')
 import Data.Validation.Jaws.Product (Builder(..), ProductValidation, Result(..))
+import Data.Variant (Variant)
 import Type.Prelude (class IsSymbol, class RowLacks, SProxy(..), reflectSymbol)
 
--- | Just prototype of form library.
-
--- | Move to this representation
--- data FormValue i v = Err String i | Val (Maybe v)
-data FormValue a = Err String String | Val a
-derive instance genericFormValue ∷ Generic (FormValue a) _
-instance showFormValue ∷ (Show a) ⇒ Show (FormValue a) where show = genericShow
-
-type FormInit a = a → Form
-
-inputFromRecord p =
-  (\r → Form [] [ Input {  label: reflectSymbol p, name: reflectSymbol p, value: Val (get p r) }])
-numberFromRecord p =
-  (\r → Form [] [ Number {  label: reflectSymbol p, name: reflectSymbol p, value: Val (get p r) }])
-
-
-x :: String -> Form
-x = (\p → {password1: p, password2: p}) >>> (inputFromRecord (SProxy ∷ SProxy "password1") <> (inputFromRecord (SProxy ∷ SProxy "password2")))
-
-
-y :: forall t265.
-   { password :: String
-   , bio :: String
-   , age :: String
-   | t265
-   }
-   -> Form
-y = inputFromRecord (SProxy ∷ SProxy "bio") <> inputFromRecord (SProxy ∷ SProxy "age") <> (_.password >>> x)
-
-data Field
-  = Input { label ∷ String, name ∷ String, value ∷ FormValue String }
-  | Password { label ∷ String, name ∷ String, value ∷ FormValue String }
-  | Number { label ∷ String, name ∷ String, value ∷ FormValue Int }
-  -- | Radio { label ∷ String, name ∷ String, value ∷ Value Boolean }
-  -- | Select { label ∷ String, name ∷ String, value ∷ Value (Array (Tuple String Boolean))}
-  -- | Checkbox { label ∷ String, name ∷ String, value ∷ Value (Array (Tuple String Boolean))}
-derive instance genericField ∷ Generic Field _
-instance showField ∷ Show Field where show = genericShow
-
--- data Form = Form { errors ∷ Array String, fields ∷ Array Field }
--- 
--- instance semigroupForm ∷ Semigroup Form where
---   append (Form f1) (Form f2)
---     = Form
---       { errors: f1.errors <> f2.errors
---       , fields: f1.fields <> f2.fields }
--- 
--- instance monoidForm ∷ Monoid Form where
---   mempty = Form { errors: [], fields: [] }
-
+-- | This type is only used as html representation of validated values.
+-- | Fully consitent and type safe values are additional result of validation.
 data Form = Form (Array String) (Array Field)
 derive instance genericForm ∷ Generic Form _
 instance showForm ∷ Show Form where show = genericShow
@@ -78,18 +34,91 @@ instance semigroupForm ∷ Semigroup Form where
 instance monoidForm ∷ Monoid Form where
   mempty = Form [] []
 
--- | This is just
--- data ProductBoomearng m tok i i' v v' = ProductBoomerang
---   { validation ∷ ProductValidation m tok i i' v v'
---   , serializer ∷ (Either i' v') → ((Either i v), tok → tok)
---   }
--- 
+-- | Move to this representation
+data FormValue a = Err String String | Val (Maybe a)
+derive instance genericFormValue ∷ Generic (FormValue a) _
+instance showFormValue ∷ (Show a) ⇒ Show (FormValue a) where show = genericShow
 
--- | I'm not sure about this representation...
--- data FormValidation m a b = FormValidation
---   { builder ∷ FormBuilder Form (a → Form)
---   , validation ∷ Builder m Query (Tuple a Form) (Tuple b Form)
+
+data Field
+  = Input { label ∷ String, name ∷ String, value ∷ FormValue String }
+  | Password { label ∷ String, name ∷ String, value ∷ FormValue String }
+  | Number { label ∷ String, name ∷ String, value ∷ FormValue Int }
+  -- | Radio { label ∷ String, name ∷ String, value ∷ Value Boolean }
+  | Select { label ∷ String, name ∷ String, options ∷ Array (Tuple String String), value ∷ FormValue String}
+  | Checkbox { label ∷ String, name ∷ String, options ∷ Array (Tuple String Boolean) }
+derive instance genericField ∷ Generic Field _
+instance showField ∷ Show Field where show = genericShow
+
+-- | Just prototype of form library.
+
+-- type FormValidation e a =
+--   { validation ∷ CoproductValidation m (Tuple Form e) Query (Tuple Form a)
+--   , init ∷ FormInit a
 --   }
+
+type FormInit a = a → Form
+
+inputFromRecordField p f =
+  (\r → Form [] [ Input {  label: reflectSymbol p, name: reflectSymbol p, value: Val $ f (get p r) }])
+numberFromRecordField p f =
+  (\r → Form [] [ Number {  label: reflectSymbol p, name: reflectSymbol p, value: Val $ f (get p r) }])
+
+inputFromRecordFieldReq p = inputFromRecordField p Just
+inputFromRecordFieldOpt p = inputFromRecordField p id
+numberFromRecordFieldReq p = numberFromRecordField p Just
+numberFromRecordFieldOpt p = numberFromRecordField p id
+
+addOption' ∷ ∀ b e i i' form l m tok v v'
+  . (IsSymbol l)
+  ⇒ (Monad m)
+  ⇒ (RowCons l (Either _ _) i i')
+  ⇒ (RowCons l _ v v')
+  ⇒ (RowLacks l i)
+  ⇒ (RowLacks l v)
+  ⇒ (Functor m)
+  ⇒ SProxy l
+  → ProductValidation m _ (Tuple (Record i) _) (Tuple (Record i') _) (Tuple (Record v) _) (Tuple (Record v') _)
+addOption' p =
+  addForm p (addOption p)
+
+addOption ∷ forall e l m.
+  IsSymbol l
+  ⇒ Monad m => (SProxy l) → CoproductValidation m
+                     (Tuple
+                        (Variant
+                           ( scalar :: Array _
+                           , "on/off" :: String
+                           | e
+                           )
+                        )
+                        (Array _)
+                     )
+                     (Array _)
+                     (Tuple Boolean (Array _))
+addOption l =
+  (unwrap $ bimap (\r → Tuple r [{ value: reflectSymbol l, checked: false }]) (\r → Tuple r [{ value: reflectSymbol l, checked: r }]) <<< CVBifunctor $ (scalar' >>> checkboxValue)) -- <|> (missingValue >>> pure false)))
+ where
+  checkboxValue = pureV' (SProxy ∷ SProxy "on/off") (case _ of
+    "on" → Right true
+    "off" → Right false
+    v → Left v)
+  --missingValue = check' (SProxy ∷ SProxy "missing") (case _ of
+  --   Nothing → true
+  --   Just "" → true
+  --   _ → false)
+
+x :: String -> Form
+x = (\p → {password1: p, password2: p}) >>> (inputFromRecordFieldReq (SProxy ∷ SProxy "password1") <> (inputFromRecordFieldReq (SProxy ∷ SProxy "password2")))
+
+y :: forall t265.
+   { password :: String
+   , bio :: Maybe String
+   , age :: Maybe Int
+   | t265
+   }
+   -> Form
+y = inputFromRecordFieldOpt (SProxy ∷ SProxy "bio") <> numberFromRecordFieldOpt (SProxy ∷ SProxy "age") <> (_.password >>> x)
 
 addFormFromQuery ∷ ∀ a e form m s ir ir' vr vr'
   . (IsSymbol s)
@@ -137,7 +166,7 @@ input label name =
   CoproductValidation n = nonEmptyString
   v = n >>> Star (case _ of
     Left e → pure (Left (Tuple e (Form [] [Input { label, name, value: Err "Appropriate error message..." "" }])))
-    Right v → pure (Right (Tuple v (Form [] [Input { label, name, value: Val v}]))))
+    Right v → pure (Right (Tuple v (Form [] [Input { label, name, value: Val (Just v) }]))))
 
 password ∷ ∀ m
   . Monad m
@@ -150,7 +179,7 @@ password label name =
   CoproductValidation n = nonEmptyString
   v = n >>> Star (case _ of
     Left e → pure (Left (Tuple e (Form [] [Password { label, name, value: Err "Appropriate error message..." "" }])))
-    Right v → pure (Right (Tuple v (Form [] [Password { label, name, value: Val v}]))))
+    Right v → pure (Right (Tuple v (Form [] [Password { label, name, value: Val (Just v)}]))))
 
 number ∷ ∀ m
   . Monad m
@@ -163,7 +192,7 @@ number label name =
   CoproductValidation n = nonEmptyString >>> int'
   v = n >>> Star (case _ of
     Left e → pure (Left (Tuple e (Form [] [Number { label, name, value: Err "Appropriate error message..." "" }])))
-    Right v → pure (Right (Tuple v (Form [] [Number { label, name, value: Val v }]))))
+    Right v → pure (Right (Tuple v (Form [] [Number { label, name, value: Val (Just v) }]))))
 
 runRecordValidation ∷ ∀ i form m tok v
   . Monad m
