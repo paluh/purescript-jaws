@@ -4,9 +4,8 @@
 
 ## Status
 
-This library explores and gives some potential tools for really strict validation processing and I'm using it in some of my projects, but... if you want something really useful to work for example with forms I want to promote my other solution: [purescript-polyform](https://github.com/paluh/purescript-polyform).
-
-We can cosider this code to be in persistent α-stage :-P
+This library explores and gives some potential tools for really strict validation processing and I'm using it in some of my projects, but...
+If you want something more lightweight to work with (for example solution for forms processing) I want to promote my other solution: [purescript-polyform](https://github.com/paluh/purescript-polyform).
 
 ## Usage
 
