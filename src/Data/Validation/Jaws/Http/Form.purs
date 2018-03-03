@@ -9,7 +9,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Monoid (class Monoid, mempty)
-import Data.Newtype (unwrap)
+import Data.Newtype (class Newtype, unwrap)
 import Data.Op (Op(..))
 import Data.Profunctor.Star (Star(..))
 import Data.Record (get, insert)
@@ -39,6 +39,20 @@ data FormValue a = Err String String | Val (Maybe a)
 derive instance genericFormValue ∷ Generic (FormValue a) _
 instance showFormValue ∷ (Show a) ⇒ Show (FormValue a) where show = genericShow
 
+type Value = String
+type Checked = Boolean
+type Label = String
+newtype Option = Option
+  { value ∷ String
+  , checked ∷ Boolean
+  , label ∷ String
+  }
+derive instance newtypeOption ∷ Newtype Option _
+derive instance genericOption ∷ Generic Option _
+instance showOption ∷ Show Option where
+  show = genericShow
+type Options = Array Option
+option v c l = Option { value: v, checked: c, label: l }
 
 data Field
   = Input { label ∷ String, name ∷ String, value ∷ FormValue String }
@@ -46,18 +60,19 @@ data Field
   | Number { label ∷ String, name ∷ String, value ∷ FormValue Int }
   -- | Radio { label ∷ String, name ∷ String, value ∷ Value Boolean }
   | Select { label ∷ String, name ∷ String, options ∷ Array (Tuple String String), value ∷ FormValue String}
-  | Checkbox { label ∷ String, name ∷ String, options ∷ Array (Tuple String Boolean) }
+  | Checkbox { label ∷ String, name ∷ String, value ∷ Either (Tuple String Options) Options }
 derive instance genericField ∷ Generic Field _
 instance showField ∷ Show Field where show = genericShow
 
 -- | Just prototype of form library.
 
--- type FormValidation e a =
---   { validation ∷ CoproductValidation m (Tuple Form e) Query (Tuple Form a)
---   , init ∷ FormInit a
---   }
-
 type FormInit a = a → Form
+
+newtype FormValidation m query e a = FormValidation
+  { validation ∷ CoproductValidation m (Tuple Form e) query (Tuple Form a)
+  , init ∷ FormInit a
+  }
+
 
 inputFromRecordField p f =
   (\r → Form [] [ Input {  label: reflectSymbol p, name: reflectSymbol p, value: Val $ f (get p r) }])
@@ -82,27 +97,29 @@ addOption' ∷ ∀ b e i i' form l m tok v v'
 addOption' p =
   addForm p (addOption p)
 
+opts = buildRecord $ addOption' (SProxy ∷ SProxy "first") >>> addOption' (SProxy ∷ SProxy "second") >>> addOption' (SProxy ∷ SProxy "third")
+
+checkboxValue = pureV' (SProxy ∷ SProxy "on/off") (case _ of
+  "on" → Right true
+  "off" → Right false
+  v → Left v)
+
 addOption ∷ forall e l m.
   IsSymbol l
   ⇒ Monad m => (SProxy l) → CoproductValidation m
                      (Tuple
                         (Variant
-                           ( scalar :: Array _
+                           ( scalar :: Array String
                            , "on/off" :: String
                            | e
                            )
                         )
-                        (Array _)
+                        (Array Option)
                      )
-                     (Array _)
-                     (Tuple Boolean (Array _))
+                     (Array String)
+                     (Tuple Boolean (Array Option))
 addOption l =
-  (unwrap $ bimap (\r → Tuple r [{ value: reflectSymbol l, checked: false }]) (\r → Tuple r [{ value: reflectSymbol l, checked: r }]) <<< CVBifunctor $ (scalar' >>> checkboxValue)) -- <|> (missingValue >>> pure false)))
- where
-  checkboxValue = pureV' (SProxy ∷ SProxy "on/off") (case _ of
-    "on" → Right true
-    "off" → Right false
-    v → Left v)
+  (unwrap $ bimap (\r → Tuple r [ option (reflectSymbol l) false (reflectSymbol l) ]) (\r → Tuple r [ option (reflectSymbol l) r (reflectSymbol l) ]) <<< CVBifunctor $ (scalar' >>> checkboxValue)) -- <|> (missingValue >>> pure false)))
   --missingValue = check' (SProxy ∷ SProxy "missing") (case _ of
   --   Nothing → true
   --   Just "" → true
