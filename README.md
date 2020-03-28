@@ -1,9 +1,9 @@
 # purescript-jaws
 
-## Status (aka Warning)
+## Deprecation warning
 
-This library explores and gives some potential tools for really strict validation processing and I'm using it in some of my projects, but...
-If you want something more lightweight to work with (for example solution for forms processing) I want to promote my other production ready solution: [purescript-polyform](https://github.com/paluh/purescript-polyform).
+Please don't waste your time and explore other validation solutions present in PureScript ecosystem.
+This lib was an expermient. Currently I'm focusing on [purescript-polyform](https://github.com/paluh/purescript-polyform) as a validation framework of choice.
 
 ## Usage
 
